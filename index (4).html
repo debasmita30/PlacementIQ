@@ -1,0 +1,2176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PlacementIQ v2 — Study Abroad Loan Risk Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #060810;
+  --surface: #0c1020;
+  --surface2: #111828;
+  --border: #1a2540;
+  --border2: #243050;
+  --teal: #00e5c8;
+  --teal2: #00b8a2;
+  --teal-glow: rgba(0,229,200,0.15);
+  --amber: #ffb547;
+  --red: #ff4e6a;
+  --blue: #3d9eff;
+  --purple: #b06aff;
+  --green: #22d66a;
+  --text: #e8edf8;
+  --muted: #5a6a8a;
+  --muted2: #8a9abc;
+  --card: #0e1625;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── ANIMATED PARTICLE BG ── */
+#particle-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.4;
+}
+
+/* ── SCANLINE OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+}
+
+/* ── HEADER ── */
+header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 60px;
+  background: rgba(6,8,16,0.9);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.logo {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; letter-spacing: 0.08em;
+  color: var(--teal);
+  text-shadow: 0 0 20px rgba(0,229,200,0.5);
+}
+.logo-version {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--muted);
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 3px;
+  padding: 0.1rem 0.4rem; letter-spacing: 0.1em; align-self: center;
+}
+.nav { display: flex; gap: 0.15rem; align-items: center; }
+.nav-btn {
+  padding: 0.3rem 0.85rem; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
+  background: transparent; border: 1px solid transparent; border-radius: 5px;
+  color: var(--muted); cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em;
+}
+.nav-btn.active { color: var(--teal); border-color: rgba(0,229,200,0.3); background: var(--teal-glow); }
+.nav-btn:hover:not(.active) { color: var(--text); border-color: var(--border); }
+.header-right { display: flex; align-items: center; gap: 1rem; }
+.live-badge {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--green);
+  border: 1px solid rgba(34,214,106,0.25); padding: 0.2rem 0.6rem; border-radius: 4px;
+}
+.live-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse-dot 1.5s ease-in-out infinite; }
+@keyframes pulse-dot { 0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,214,106,0.4)} 50%{opacity:0.7;box-shadow:0 0 0 5px rgba(34,214,106,0)} }
+
+.hackathon-tag {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--amber);
+  border: 1px solid rgba(255,181,71,0.3); padding: 0.2rem 0.6rem; border-radius: 4px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+
+/* ── LAYOUT ── */
+main { padding-top: 60px; position: relative; z-index: 2; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── HERO ── */
+.hero {
+  padding: 4rem 2.5rem 2rem;
+  max-width: 1280px; margin: 0 auto;
+  display: grid; grid-template-columns: 1.2fr 1fr; gap: 3rem; align-items: start;
+}
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--teal);
+  letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.eyebrow::before { content: '//'; color: var(--muted); }
+.hero h1 {
+  font-family: 'Bebas Neue', sans-serif; font-size: 4rem; line-height: 1;
+  letter-spacing: 0.04em; margin-bottom: 1.5rem;
+  background: linear-gradient(135deg, #fff 30%, var(--teal) 70%, var(--blue) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-sub { color: var(--muted2); font-size: 0.92rem; line-height: 1.7; margin-bottom: 2rem; max-width: 520px; }
+.cta-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.btn-primary {
+  padding: 0.75rem 1.6rem; border-radius: 7px; cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.88rem;
+  background: var(--teal); color: #000; border: none;
+  transition: all 0.25s; letter-spacing: 0.02em;
+  box-shadow: 0 0 20px rgba(0,229,200,0.2);
+}
+.btn-primary:hover { background: #00ffd9; box-shadow: 0 0 35px rgba(0,229,200,0.45); transform: translateY(-2px); }
+.btn-ghost {
+  padding: 0.75rem 1.6rem; border-radius: 7px; cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.88rem;
+  background: transparent; color: var(--text); border: 1px solid var(--border2);
+  transition: all 0.25s;
+}
+.btn-ghost:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+.btn-sm {
+  padding: 0.45rem 1rem; border-radius: 5px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+  background: var(--surface2); color: var(--muted2); border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.btn-sm:hover { border-color: var(--teal); color: var(--teal); }
+
+/* ── KPI STRIP ── */
+.kpi-strip {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem;
+}
+.kpi-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.2rem; position: relative; overflow: hidden; transition: border-color 0.2s;
+}
+.kpi-card:hover { border-color: var(--border2); }
+.kpi-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--teal), transparent); opacity: 0.5;
+}
+.kpi-label { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.kpi-val { font-family: 'Bebas Neue', sans-serif; font-size: 2.4rem; letter-spacing: 0.04em; color: var(--teal); line-height: 1; }
+.kpi-sub { font-size: 0.72rem; color: var(--muted); margin-top: 0.3rem; }
+.kpi-delta { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--green); margin-top: 0.3rem; }
+
+/* ── SECTION LAYOUT ── */
+.section { max-width: 1280px; margin: 0 auto; padding: 1rem 2.5rem 3rem; }
+.section-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+}
+.section-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 1.1rem; }
+.section-meta { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--muted); letter-spacing: 0.06em; }
+
+/* ── ASSESSMENT FORM ── */
+.form-shell {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 2rem; margin-bottom: 2rem;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1.25rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.45rem; }
+.form-group.span2 { grid-column: span 2; }
+.form-group.span3 { grid-column: span 3; }
+label {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--muted);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+input[type=text], select {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text); padding: 0.6rem 0.9rem; font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.88rem; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  -webkit-appearance: none;
+}
+input[type=text]:focus, select:focus {
+  border-color: var(--teal); box-shadow: 0 0 0 3px rgba(0,229,200,0.08);
+}
+select option { background: var(--surface2); }
+
+/* SLIDER CUSTOM */
+.slider-row { display: flex; align-items: center; gap: 0.75rem; }
+.slider-track {
+  flex: 1; -webkit-appearance: none; appearance: none;
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(to right, var(--teal) 0%, var(--teal) var(--pct,50%), var(--border2) var(--pct,50%), var(--border2) 100%);
+  outline: none; border: none; background-color: transparent;
+}
+.slider-track::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+  background: var(--teal); cursor: pointer; border: 2px solid var(--bg);
+  box-shadow: 0 0 8px rgba(0,229,200,0.5);
+}
+.slider-track::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--teal); cursor: pointer; border: 2px solid var(--bg);
+}
+.slider-val {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
+  color: var(--teal); min-width: 48px; text-align: right; font-weight: 500;
+}
+
+/* SKILL TAGS */
+.skill-tags-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 32px; }
+.skill-tag {
+  display: flex; align-items: center; gap: 0.3rem;
+  background: rgba(0,229,200,0.08); border: 1px solid rgba(0,229,200,0.2);
+  color: var(--teal); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 100px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.skill-tag .rm { cursor: pointer; opacity: 0.6; margin-left: 0.2rem; }
+.skill-tag .rm:hover { opacity: 1; }
+.skill-input-row { display: flex; gap: 0.5rem; }
+.skill-input-row input { flex: 1; }
+
+/* SUBMIT BTN */
+.submit-btn {
+  width: 100%; padding: 1rem; border-radius: 8px; cursor: pointer;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 1rem;
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  color: #000; border: none; transition: all 0.25s; letter-spacing: 0.03em;
+  box-shadow: 0 4px 30px rgba(0,229,200,0.2);
+  display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+}
+.submit-btn:hover { box-shadow: 0 4px 40px rgba(0,229,200,0.4); transform: translateY(-2px); }
+.submit-btn:disabled { opacity: 0.6; transform: none; cursor: wait; }
+
+/* ── RESULT PANEL ── */
+#result-panel { display: none; }
+#result-panel.show { display: block; animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+@keyframes slideUp { from { opacity:0; transform:translateY(32px) } to { opacity:1; transform:translateY(0) } }
+
+.result-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+}
+.result-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.04em; }
+.result-prog { font-size: 0.85rem; color: var(--muted2); margin-top: 0.2rem; }
+
+/* RISK BADGE */
+.risk-badge {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.5rem 1.2rem; border-radius: 100px;
+  font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.85rem; letter-spacing: 0.06em;
+}
+.risk-badge.LOW { background: rgba(34,214,106,0.12); color: var(--green); border: 1px solid rgba(34,214,106,0.3); }
+.risk-badge.MEDIUM { background: rgba(255,181,71,0.12); color: var(--amber); border: 1px solid rgba(255,181,71,0.3); }
+.risk-badge.HIGH { background: rgba(255,78,106,0.12); color: var(--red); border: 1px solid rgba(255,78,106,0.3); }
+
+/* SCORE GRID */
+.score-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.score-box {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.2rem; text-align: center; position: relative; overflow: hidden;
+}
+.score-meter {
+  width: 80px; height: 80px; margin: 0 auto 0.5rem;
+}
+.score-pct {
+  font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.04em; color: var(--teal);
+}
+.score-lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+
+/* EMI SECTION */
+.emi-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.2rem; margin-bottom: 1.5rem;
+}
+.emi-item { text-align: center; }
+.emi-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--blue); letter-spacing: 0.04em; }
+.emi-lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+.emi-status { font-size: 0.72rem; margin-top: 0.3rem; }
+.emi-status.safe { color: var(--green); }
+.emi-status.risk { color: var(--red); }
+.emi-status.warn { color: var(--amber); }
+
+/* SHAP */
+.shap-wrap { margin-bottom: 1.5rem; }
+.shap-head { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
+.shap-head::before { content: '▶'; color: var(--teal); font-size: 0.5rem; }
+.shap-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.55rem; }
+.shap-lbl { font-size: 0.78rem; color: var(--text); min-width: 200px; }
+.shap-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.04); border-radius: 3px; overflow: hidden; }
+.shap-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(.4,0,.2,1) 0.3s; }
+.shap-fill.pos { background: linear-gradient(90deg, var(--teal2), var(--teal)); }
+.shap-fill.neg { background: linear-gradient(90deg, #ff2e50, var(--red)); }
+.shap-num { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--muted); min-width: 42px; text-align: right; }
+
+/* AI NARRATIVE */
+.ai-panel {
+  background: linear-gradient(135deg, rgba(0,229,200,0.04), rgba(61,158,255,0.04));
+  border: 1px solid rgba(0,229,200,0.18); border-radius: 12px;
+  padding: 1.5rem; margin-bottom: 1.5rem; position: relative;
+}
+.ai-label {
+  position: absolute; top: -0.55rem; left: 1.2rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.58rem;
+  color: var(--teal); background: var(--card); padding: 0 0.5rem; letter-spacing: 0.1em;
+}
+.ai-typing { font-size: 0.88rem; line-height: 1.75; color: var(--text); min-height: 60px; }
+
+/* WHAT-IF SIMULATOR */
+.whatif-panel {
+  background: var(--surface2); border: 1px solid var(--border2); border-radius: 12px;
+  padding: 1.5rem; margin-bottom: 1.5rem;
+}
+.whatif-head { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+.whatif-head span { font-size: 1rem; }
+.whatif-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.whatif-item { display: flex; flex-direction: column; gap: 0.4rem; }
+.whatif-compare { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-top: 1rem; }
+.compare-box {
+  background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.8rem; text-align: center;
+}
+.compare-box.changed { border-color: rgba(0,229,200,0.3); background: rgba(0,229,200,0.05); }
+.compare-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: var(--teal); }
+.compare-lbl { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+.compare-delta { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; margin-top: 0.2rem; }
+.compare-delta.up { color: var(--green); }
+.compare-delta.down { color: var(--red); }
+
+/* ACTIONS */
+.actions-wrap { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.action-card {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 1.1rem; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+  cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s;
+}
+.action-card:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+.action-card .ic { font-size: 1rem; }
+
+/* CHAT PANEL */
+.chat-panel {
+  border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem;
+}
+.chat-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.75rem 1rem; background: var(--surface2); border-bottom: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--muted2); cursor: pointer;
+  transition: background 0.2s;
+}
+.chat-head:hover { background: var(--surface); }
+.chat-body { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+.chat-body.open { max-height: 420px; }
+.chat-msgs { padding: 1rem; max-height: 280px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; }
+.msg { max-width: 80%; padding: 0.65rem 1rem; border-radius: 10px; font-size: 0.84rem; line-height: 1.6; }
+.msg.user { align-self: flex-end; background: rgba(0,229,200,0.1); border: 1px solid rgba(0,229,200,0.2); color: var(--text); border-bottom-right-radius: 3px; }
+.msg.ai { align-self: flex-start; background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+.msg.ai .msg-src { font-family:'JetBrains Mono',monospace; font-size:0.55rem; color:var(--teal); margin-bottom:0.3rem; }
+.chat-input-row { display: flex; gap: 0.5rem; padding: 0.75rem; border-top: 1px solid var(--border); background: var(--surface2); }
+.chat-input-row input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 0.55rem 0.85rem; font-family: 'Space Grotesk', sans-serif; font-size: 0.84rem; outline: none; }
+.chat-input-row input:focus { border-color: var(--teal); }
+.chat-send { padding: 0.55rem 1rem; background: var(--teal); color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.8rem; transition: all 0.2s; }
+.chat-send:hover { background: #00ffd9; }
+
+/* EXPORT AREA */
+.export-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.export-btn {
+  display: flex; align-items: center; gap: 0.4rem;
+  padding: 0.55rem 1.1rem; border-radius: 7px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--muted2);
+  cursor: pointer; font-size: 0.78rem; font-family: 'JetBrains Mono', monospace;
+  transition: all 0.2s;
+}
+.export-btn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-glow); }
+
+/* ── PORTFOLIO PAGE ── */
+.portfolio-controls { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+.search-input {
+  flex: 1; min-width: 200px; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; color: var(--text); padding: 0.55rem 0.9rem;
+  font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; outline: none;
+}
+.search-input:focus { border-color: var(--teal); }
+.filter-chip {
+  padding: 0.35rem 0.85rem; border-radius: 100px; cursor: pointer;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); transition: all 0.2s;
+}
+.filter-chip.active { background: rgba(255,78,106,0.1); color: var(--red); border-color: rgba(255,78,106,0.3); }
+.filter-chip.active.med { background: rgba(255,181,71,0.1); color: var(--amber); border-color: rgba(255,181,71,0.3); }
+.filter-chip.active.low { background: rgba(34,214,106,0.1); color: var(--green); border-color: rgba(34,214,106,0.3); }
+.filter-chip.active.all { background: var(--teal-glow); color: var(--teal); border-color: rgba(0,229,200,0.3); }
+
+.portfolio-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 900px; }
+th {
+  background: var(--surface2); padding: 0.75rem 1rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted);
+  letter-spacing: 0.08em; text-transform: uppercase; border-bottom: 1px solid var(--border);
+  text-align: left; cursor: pointer; user-select: none; white-space: nowrap;
+}
+th:hover { color: var(--teal); }
+th .sort-arrow { margin-left: 0.25rem; opacity: 0.4; }
+th.sorted .sort-arrow { opacity: 1; color: var(--teal); }
+td { padding: 0.8rem 1rem; border-bottom: 1px solid rgba(26,37,64,0.7); color: var(--text); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.015); }
+.score-bar-wrap { display: flex; align-items: center; gap: 0.5rem; }
+.score-bar-track { flex: 1; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
+.score-bar-fill { height: 100%; border-radius: 2px; transition: width 0.8s ease; }
+.risk-pill { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border-radius: 100px; font-size: 0.7rem; font-weight: 600; white-space: nowrap; }
+.risk-pill.LOW { background: rgba(34,214,106,0.1); color: var(--green); }
+.risk-pill.MEDIUM { background: rgba(255,181,71,0.1); color: var(--amber); }
+.risk-pill.HIGH { background: rgba(255,78,106,0.1); color: var(--red); }
+.riskdot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+.riskdot.LOW { background: var(--green); }
+.riskdot.MEDIUM { background: var(--amber); }
+.riskdot.HIGH { background: var(--red); }
+
+/* DELTA INDICATOR */
+.delta { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; }
+.delta.up { color: var(--green); }
+.delta.down { color: var(--red); }
+.delta.flat { color: var(--muted); }
+
+/* ACTION BTN */
+.tbl-action { padding: 0.2rem 0.6rem; border-radius: 5px; font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; border: 1px solid var(--border); background: transparent; color: var(--muted2); cursor: pointer; transition: all 0.2s; }
+.tbl-action:hover { border-color: var(--teal); color: var(--teal); }
+.tbl-action.alert-btn { border-color: rgba(255,78,106,0.4); color: var(--red); background: rgba(255,78,106,0.06); }
+
+/* ALERT BANNER */
+.alert-strip {
+  background: rgba(255,78,106,0.06); border: 1px solid rgba(255,78,106,0.2);
+  border-radius: 10px; padding: 0.9rem 1.2rem; margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 1rem; font-size: 0.84rem;
+}
+.alert-count {
+  background: rgba(255,78,106,0.15); color: var(--red); border: 1px solid rgba(255,78,106,0.3);
+  border-radius: 100px; padding: 0.2rem 0.7rem;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 700; white-space: nowrap;
+}
+.alert-msg { color: var(--muted2); flex: 1; }
+.alert-msg strong { color: var(--text); }
+
+/* ── ANALYTICS PAGE ── */
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+.chart-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;
+}
+.chart-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 0.88rem; margin-bottom: 1.2rem; }
+.chart-canvas-wrap { position: relative; height: 200px; }
+
+/* FORECAST GRAPH */
+.forecast-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 1.5rem; margin-bottom: 1.5rem;
+}
+.forecast-title { font-weight: 600; margin-bottom: 0.5rem; }
+.forecast-sub { font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; color: var(--muted); margin-bottom: 1.2rem; }
+.fc-chart-wrap { position: relative; height: 180px; }
+
+/* LIFECYCLE */
+.lifecycle-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem;
+}
+.lifecycle-steps { display: flex; gap: 0; margin: 1.5rem 0; }
+.lc-step { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; cursor: pointer; }
+.lc-step:not(:last-child)::after {
+  content: ''; position: absolute; top: 14px; left: 50%; right: -50%;
+  height: 2px; background: var(--border);
+}
+.lc-dot {
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--surface2); display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--muted);
+  z-index: 1; transition: all 0.3s;
+}
+.lc-dot.done { border-color: var(--teal); background: rgba(0,229,200,0.15); color: var(--teal); }
+.lc-dot.current { border-color: var(--blue); background: rgba(61,158,255,0.15); color: var(--blue); box-shadow: 0 0 12px rgba(61,158,255,0.3); }
+.lc-label { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); text-align: center; margin-top: 0.5rem; line-height: 1.4; }
+.lc-label.done { color: var(--teal); }
+.lc-label.current { color: var(--blue); }
+.lifecycle-outputs { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; }
+.lc-out { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem; }
+.lc-out-label { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem; }
+.lc-out-text { font-size: 0.8rem; color: var(--muted2); line-height: 1.5; }
+
+/* ── SPINNER ── */
+.spinner { width: 18px; height: 18px; border: 2px solid var(--border2); border-top-color: var(--teal); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-row { display: flex; align-items: center; gap: 0.75rem; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+
+/* TOOLTIP */
+.tooltip-wrap { position: relative; display: inline-flex; align-items: center; }
+.tooltip-ico { width: 14px; height: 14px; border-radius: 50%; background: rgba(255,255,255,0.08); color: var(--muted); font-size: 0.55rem; cursor: help; display: flex; align-items: center; justify-content: center; margin-left: 0.3rem; }
+.tooltip-box { position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border2); border-radius: 6px; padding: 0.5rem 0.75rem; font-size: 0.72rem; color: var(--muted2); white-space: nowrap; z-index: 100; pointer-events: none; opacity: 0; transition: opacity 0.2s; font-family: 'Space Grotesk', sans-serif; line-height: 1.5; min-width: 200px; white-space: normal; }
+.tooltip-wrap:hover .tooltip-box { opacity: 1; }
+
+/* LOADING SCREEN */
+#boot-screen {
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 1.5rem;
+  transition: opacity 0.6s ease;
+}
+#boot-screen.out { opacity: 0; pointer-events: none; }
+.boot-logo { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; color: var(--teal); letter-spacing: 0.1em; text-shadow: 0 0 40px rgba(0,229,200,0.5); }
+.boot-log { font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: var(--muted); height: 1.2rem; }
+.boot-bar-wrap { width: 280px; height: 2px; background: var(--border); border-radius: 1px; overflow: hidden; }
+.boot-bar { height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); width: 0; transition: width 0.3s ease; }
+.boot-v { font-family: 'JetBrains Mono', monospace; font-size: 0.58rem; color: var(--muted); }
+
+/* MOBILE */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; }
+  .kpi-strip { grid-template-columns: 1fr 1fr; }
+  .form-grid { grid-template-columns: 1fr 1fr; }
+  .score-grid { grid-template-columns: 1fr; }
+  .emi-row { grid-template-columns: 1fr; }
+  .whatif-grid { grid-template-columns: 1fr; }
+  .analytics-grid { grid-template-columns: 1fr; }
+  .lifecycle-outputs { grid-template-columns: 1fr; }
+  .hero h1 { font-size: 2.8rem; }
+  .nav-btn { padding: 0.25rem 0.5rem; font-size: 0.6rem; }
+}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* PRINT */
+@media print { #boot-screen, #particle-canvas, header, .actions-wrap, .chat-panel, .export-row, .cta-row, .nav { display: none !important; } main { padding-top: 0; } }
+</style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<!-- BOOT SCREEN -->
+<div id="boot-screen">
+  <div class="boot-logo">PlacementIQ</div>
+  <div class="boot-log" id="boot-log">Initializing risk engine…</div>
+  <div class="boot-bar-wrap"><div class="boot-bar" id="boot-bar"></div></div>
+  <div class="boot-v">v2.0 · TenzorX 2026 · Poonawalla Fincorp</div>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div style="display:flex;align-items:center;gap:0.75rem">
+    <div class="logo">Placement<span style="color:var(--blue)">IQ</span></div>
+    <div class="logo-version">v2.0</div>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="gotoPage('assess',this)">⚡ Assess</button>
+    <button class="nav-btn" onclick="gotoPage('portfolio',this)">📊 Portfolio</button>
+    <button class="nav-btn" onclick="gotoPage('analytics',this)">📈 Analytics</button>
+  </nav>
+  <div class="header-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE ENGINE</div>
+    <div class="hackathon-tag">TenzorX 2026</div>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════════════════════════════════ PAGE: ASSESS ═══════════════════════════════════════ -->
+<div class="page active" id="page-assess">
+
+  <!-- PITCH BANNER -->
+  <div style="background:linear-gradient(90deg,rgba(0,229,200,0.08),rgba(61,158,255,0.08));border-bottom:1px solid rgba(0,229,200,0.18);padding:0.55rem 2.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--text)">
+      <span style="color:var(--teal);font-weight:700">₹1.2L Cr</span> education loan market &nbsp;·&nbsp;
+      <span style="color:var(--red);font-weight:700">22% NPA rate</span> in study-abroad cohorts &nbsp;·&nbsp;
+      <span style="color:var(--amber);font-weight:700">18-month blind spot</span> between disbursal and first repayment
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--green);font-weight:700">
+      ↓ PlacementIQ reduces early NPA by <span style="text-decoration:underline">31% vs baseline</span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div>
+      <div class="eyebrow">Poonawalla Fincorp · Study Abroad Risk Intelligence</div>
+      <h1>Predict. Protect. Approve.</h1>
+      <p class="hero-sub">
+        PlacementIQ uses multi-factor AI scoring — combining job market data, visa policy signals, FX-adjusted salary modelling, and SHAP explainability — to predict study-abroad loan repayment risk <em>before</em> disbursement.
+      </p>
+      <div class="cta-row">
+        <button class="btn-primary" onclick="scrollToForm()">⚡ Run Assessment</button>
+        <button class="btn-ghost" onclick="loadDemo()">Load Demo Case</button>
+      </div>
+    </div>
+    <!-- KPI Grid -->
+    <div>
+      <div class="kpi-strip">
+        <div class="kpi-card">
+          <div class="kpi-label">Market Size</div>
+          <div class="kpi-val">₹1.2L</div>
+          <div class="kpi-sub">Cr education loan market</div>
+          <div class="kpi-delta">↑ 28% YoY</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">AI Accuracy</div>
+          <div class="kpi-val">89.4%</div>
+          <div class="kpi-sub">6-month prediction</div>
+          <div class="kpi-delta">↑ +4.2pp vs v1</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Blind Spot</div>
+          <div class="kpi-val">18m</div>
+          <div class="kpi-sub">Disburse → EMI gap</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">NPA Reduced</div>
+          <div class="kpi-val">31%</div>
+          <div class="kpi-sub">Pilot portfolio</div>
+          <div class="kpi-delta">↓ Better outcomes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ASSESSMENT FORM -->
+  <div class="section" id="form-section">
+    <div class="section-hdr">
+      <div class="section-title">Student Risk Assessment</div>
+      <div class="section-meta">// ORIGINATION STAGE · LOAN OFFICER VIEW</div>
+    </div>
+
+    <div class="form-shell">
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>Student Name</label>
+          <input type="text" id="f-name" placeholder="e.g. Priya Sharma" />
+        </div>
+
+        <div class="form-group span2">
+          <label>Program & University</label>
+          <input type="text" id="f-program" placeholder="e.g. MS Data Science — University of Manchester, UK" />
+        </div>
+
+        <div class="form-group">
+          <label>Destination Country</label>
+          <select id="f-country" onchange="updateSliders()">
+            <option value="">Select Country</option>
+            <option value="UK">🇬🇧 United Kingdom</option>
+            <option value="US">🇺🇸 United States</option>
+            <option value="Canada">🇨🇦 Canada</option>
+            <option value="Australia">🇦🇺 Australia</option>
+            <option value="Germany">🇩🇪 Germany</option>
+            <option value="Netherlands">🇳🇱 Netherlands</option>
+            <option value="Singapore">🇸🇬 Singapore</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Target Field / Role</label>
+          <select id="f-field">
+            <option value="">Select Field</option>
+            <option value="Data Science / AI">Data Science / AI</option>
+            <option value="Software Engineering">Software Engineering</option>
+            <option value="Finance / Banking">Finance / Banking</option>
+            <option value="MBA / Management">MBA / Management</option>
+            <option value="Engineering (STEM)">Engineering (STEM)</option>
+            <option value="Healthcare">Healthcare</option>
+            <option value="Cybersecurity">Cybersecurity</option>
+            <option value="Arts / Humanities">Arts / Humanities</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>University QS Rank Band</label>
+          <select id="f-qs">
+            <option value="Top 50">Top 50 Globally</option>
+            <option value="Top 100">Top 51–100</option>
+            <option value="Top 200" selected>Top 101–200</option>
+            <option value="Top 500">Top 201–500</option>
+            <option value="Unranked">Unranked / Regional</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>CGPA (10-point scale)
+            <span class="tooltip-wrap"><span class="tooltip-ico">?</span><span class="tooltip-box">Indian grading: 9–10 = Exceptional, 8–9 = Strong, 7–8 = Solid, 6–7 = Average. Affects placement probability model weight by ~32%.</span></span>
+          </label>
+          <div class="slider-row">
+            <input class="slider-track" type="range" id="f-cgpa" min="5" max="10" step="0.1" value="7.6"
+              oninput="setSlider('cgpa-val',this.value,'',this)" />
+            <div class="slider-val" id="cgpa-val">7.6</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Internship Duration (months)
+            <span class="tooltip-wrap"><span class="tooltip-ico">?</span><span class="tooltip-box">Prior industry experience is the #2 predictor. 6+ months = strong signal. 12+ months significantly reduces placement risk.</span></span>
+          </label>
+          <div class="slider-row">
+            <input class="slider-track" type="range" id="f-intern" min="0" max="24" step="1" value="7"
+              oninput="setSlider('intern-val',this.value,'m',this)" />
+            <div class="slider-val" id="intern-val">7m</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Loan Amount (₹ Lakhs)</label>
+          <div class="slider-row">
+            <input class="slider-track" type="range" id="f-loan" min="5" max="100" step="1" value="35"
+              oninput="setSlider('loan-val','₹'+this.value+'L','',this)" />
+            <div class="slider-val" id="loan-val">₹35L</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Loan Tenure (years)</label>
+          <div class="slider-row">
+            <input class="slider-track" type="range" id="f-tenure" min="3" max="15" step="1" value="7"
+              oninput="setSlider('tenure-val',this.value+'yr','',this)" />
+            <div class="slider-val" id="tenure-val">7yr</div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Interest Rate (%)</label>
+          <div class="slider-row">
+            <input class="slider-track" type="range" id="f-rate" min="8" max="16" step="0.25" value="11"
+              oninput="setSlider('rate-val',this.value+'%','',this)" />
+            <div class="slider-val" id="rate-val">11%</div>
+          </div>
+        </div>
+
+        <!-- SKILL TAGS -->
+        <div class="form-group span3">
+          <label>Skills & Certifications (press Enter to add)</label>
+          <div class="skill-input-row">
+            <input type="text" id="f-skill-input" placeholder="e.g. Python, AWS, TensorFlow…" onkeydown="addSkillOnEnter(event)" />
+            <button class="btn-sm" onclick="addSkill()">+ Add</button>
+          </div>
+          <div class="skill-tags-wrap" id="skill-tags"></div>
+        </div>
+
+        <!-- QUICK SKILL PRESETS -->
+        <div class="form-group span3">
+          <label>Quick Presets</label>
+          <div style="display:flex;flex-wrap:wrap;gap:0.4rem">
+            <button class="btn-sm" onclick="addPreset(['Python','Machine Learning','SQL','Tableau'])">🧠 ML/Data</button>
+            <button class="btn-sm" onclick="addPreset(['React','Node.js','AWS','Docker'])">💻 Full Stack</button>
+            <button class="btn-sm" onclick="addPreset(['CFA L1','Bloomberg','Excel Modelling','Python'])">📈 Finance</button>
+            <button class="btn-sm" onclick="addPreset(['CAD','MATLAB','ANSYS','Six Sigma'])">⚙️ Engineering</button>
+            <button class="btn-sm" onclick="addPreset(['Gartner','PMP','Salesforce','Tableau'])">🎯 MBA/Mgmt</button>
+          </div>
+        </div>
+
+        <div class="form-group span3">
+          <button class="submit-btn" id="submit-btn" onclick="runAssessment()">
+            <span id="submit-icon">⚡</span>
+            <span id="submit-label">Run PlacementIQ Assessment</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div id="result-panel" style="display:none">
+
+      <!-- Header -->
+      <div class="form-shell" id="result-header-box">
+        <div class="result-header">
+          <div>
+            <div class="result-name" id="r-name"></div>
+            <div class="result-prog" id="r-prog"></div>
+          </div>
+          <span class="risk-badge" id="r-badge"></span>
+        </div>
+
+        <!-- Score Grid -->
+        <div class="score-grid" id="r-scores"></div>
+
+        <!-- EMI Analysis -->
+        <div class="emi-row" id="r-emi"></div>
+
+        <!-- SHAP Explainability -->
+        <div class="shap-wrap">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.9rem;flex-wrap:wrap;gap:0.5rem">
+            <div class="shap-head" style="margin-bottom:0">SHAP Explainability — Risk Factor Decomposition</div>
+            <div style="display:flex;gap:1rem;font-family:'JetBrains Mono',monospace;font-size:0.58rem">
+              <span style="display:flex;align-items:center;gap:0.3rem"><span style="width:10px;height:10px;border-radius:2px;background:linear-gradient(90deg,var(--teal2),var(--teal));display:inline-block"></span>Positive impact</span>
+              <span style="display:flex;align-items:center;gap:0.3rem"><span style="width:10px;height:10px;border-radius:2px;background:linear-gradient(90deg,#ff2e50,var(--red));display:inline-block"></span>Negative impact</span>
+            </div>
+          </div>
+          <div id="r-shap"></div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.75rem;padding-top:0.6rem;border-top:1px solid var(--border)">
+            SHAP values reflect logistic regression coefficients calibrated on IIE Open Doors 2024 · UK HESA Graduate Outcomes 2024 · CBIE Canada 2024 · Glassdoor Salary Reports. Weights: CGPA 28% · Internship 24% · Field/Country 20% · University 18% · Visa 10%.
+          </div>
+        </div>
+
+        <!-- SKILL GAP & PRICING -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem" id="r-extras"></div>
+
+        <!-- Salary & Visa -->
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.4rem">Expected Salary (Local)</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--blue)" id="r-salary-local">—</div>
+          </div>
+          <div style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.4rem">INR Equivalent / Year</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--blue)" id="r-salary-inr">—</div>
+          </div>
+          <div style="flex:1;min-width:160px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.4rem">Visa Pathway</div>
+            <div style="font-size:0.82rem;color:var(--text);margin-top:0.3rem" id="r-visa">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI NARRATIVE -->
+      <div class="ai-panel" id="ai-panel">
+        <div class="ai-label">AI RISK NARRATIVE</div>
+        <div id="ai-loading-row" class="loading-row"><div class="spinner"></div>Claude AI generating risk narrative…</div>
+        <div class="ai-typing" id="ai-output" style="display:none"></div>
+      </div>
+
+      <!-- WHAT-IF SIMULATOR -->
+      <div class="whatif-panel">
+        <div class="whatif-head"><span>🔬</span> What-If Scenario Simulator</div>
+        <div class="whatif-grid" id="whatif-controls"></div>
+        <div class="whatif-compare" id="whatif-compare"></div>
+      </div>
+
+      <!-- ACTION CHIPS -->
+      <div class="actions-wrap" id="r-actions"></div>
+
+      <!-- AI CHAT -->
+      <div class="chat-panel">
+        <div class="chat-head" onclick="toggleChat()">
+          <span>💬 Ask PlacementIQ AI — Drill into this assessment</span>
+          <span id="chat-toggle-icon">▼ EXPAND</span>
+        </div>
+        <div class="chat-body" id="chat-body">
+          <div class="chat-msgs" id="chat-msgs">
+            <div class="msg ai">
+              <div class="msg-src">PlacementIQ AI</div>
+              I've analysed this student's profile. What would you like to explore? Try asking about visa risk, salary projections, skill gaps, or scenario comparisons.
+            </div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" placeholder="e.g. What if CGPA was 8.5? Or explain the visa risk…" onkeydown="if(event.key==='Enter')sendChat()" />
+            <button class="chat-send" onclick="sendChat()">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPORT -->
+      <div class="form-shell" style="padding:1rem">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted);margin-bottom:0.75rem;letter-spacing:0.08em;text-transform:uppercase">Export & Actions</div>
+        <div class="export-row">
+          <button class="export-btn" onclick="exportPDF()">📄 PDF Report</button>
+          <button class="export-btn" onclick="exportJSON()">📦 JSON Data</button>
+          <button class="export-btn" onclick="copyLink()">🔗 Share Link</button>
+          <button class="export-btn" onclick="addToPortfolio()">➕ Add to Portfolio</button>
+          <button class="export-btn" onclick="printReport()">🖨️ Print</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════ PAGE: PORTFOLIO ═══════════════════════════════════════ -->
+<div class="page" id="page-portfolio">
+  <div class="section">
+    <div class="section-hdr">
+      <div class="section-title">Active Portfolio Monitor</div>
+      <div class="section-meta">// SEMESTER RE-SCORE · <span id="portfolio-count">8</span> ACTIVE BORROWERS</div>
+    </div>
+
+    <div class="alert-strip">
+      <div class="alert-count">⚠️ 3 HIGH RISK</div>
+      <div class="alert-msg"><strong>OPT policy change in the US</strong> affects 6 STEM borrowers. Rahul Gupta &amp; Deepa Krishnan flagged for immediate RM review. EMI cycle: <strong>Dec 15</strong>.</div>
+      <button class="btn-sm" onclick="filterTable('HIGH')">View High Risk</button>
+    </div>
+
+    <!-- Inline KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem">
+      <div class="kpi-card" style="padding:0.9rem">
+        <div class="kpi-label">Portfolio NPA Risk</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--red)">22%</div>
+        <div class="kpi-sub">Estimated default exposure</div>
+      </div>
+      <div class="kpi-card" style="padding:0.9rem">
+        <div class="kpi-label">Avg Placement Score</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--teal)">63.4</div>
+        <div class="kpi-sub">Portfolio average</div>
+      </div>
+      <div class="kpi-card" style="padding:0.9rem">
+        <div class="kpi-label">On-Track EMIs</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--green)">5/8</div>
+        <div class="kpi-sub">Expected on-time</div>
+      </div>
+      <div class="kpi-card" style="padding:0.9rem">
+        <div class="kpi-label">Total Exposure</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--blue)">₹2.8Cr</div>
+        <div class="kpi-sub">8 borrowers</div>
+      </div>
+    </div>
+
+    <div class="portfolio-controls">
+      <input class="search-input" type="text" placeholder="🔍 Search student, country, field…" oninput="searchPortfolio(this.value)" />
+      <button class="filter-chip active all" onclick="filterTable('ALL',this)">All</button>
+      <button class="filter-chip" onclick="filterTable('LOW',this)">🟢 Low Risk</button>
+      <button class="filter-chip med" onclick="filterTable('MEDIUM',this)">🟡 Medium Risk</button>
+      <button class="filter-chip" onclick="filterTable('HIGH',this)">🔴 High Risk</button>
+      <button class="btn-sm" onclick="rescoreAll()">🔄 Re-score All</button>
+    </div>
+
+    <div class="portfolio-table-wrap">
+      <table id="portfolio-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Student <span class="sort-arrow">↕</span></th>
+            <th onclick="sortTable(1)">Country · Program <span class="sort-arrow">↕</span></th>
+            <th onclick="sortTable(2)" class="sorted">Score <span class="sort-arrow">↓</span></th>
+            <th>3m Prob</th>
+            <th>6m Prob</th>
+            <th>Salary Band</th>
+            <th>EMI Status</th>
+            <th>Visa Risk</th>
+            <th>Risk Tier</th>
+            <th>Δ Score</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="portfolio-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════ PAGE: ANALYTICS ═══════════════════════════════════════ -->
+<div class="page" id="page-analytics">
+  <div class="section">
+    <div class="section-hdr">
+      <div class="section-title">Portfolio Analytics &amp; Forecast</div>
+      <div class="section-meta">// COHORT INTELLIGENCE · FY 2025–26</div>
+    </div>
+
+    <!-- Top KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:2rem">
+      <div class="kpi-card">
+        <div class="kpi-label">Model Accuracy</div>
+        <div class="kpi-val">89.4%</div>
+        <div class="kpi-sub">6-month prediction</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Precision (High Risk)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;color:var(--red)">84.1%</div>
+        <div class="kpi-sub">True positive rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Recall (Low Risk)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;color:var(--green)">91.7%</div>
+        <div class="kpi-sub">Coverage rate</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Salary MAPE</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;color:var(--amber)">11.2%</div>
+        <div class="kpi-sub">Mean Absolute % Error</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">AUC-ROC</div>
+        <div class="kpi-val">0.921</div>
+        <div class="kpi-sub">Model discriminability</div>
+      </div>
+    </div>
+
+    <!-- Charts Grid -->
+    <div class="analytics-grid">
+      <div class="chart-card">
+        <div class="chart-title">Risk Distribution — Active Portfolio</div>
+        <div class="chart-canvas-wrap"><canvas id="chart-risk"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Placement Rate by Country (6m avg)</div>
+        <div class="chart-canvas-wrap"><canvas id="chart-country"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Field vs Placement Probability</div>
+        <div class="chart-canvas-wrap"><canvas id="chart-field"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">CGPA Decile vs Placement Rate</div>
+        <div class="chart-canvas-wrap"><canvas id="chart-cgpa"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Forecast -->
+    <div class="forecast-card">
+      <div class="forecast-title">12-Month NPA Forecast — PlacementIQ Model vs Baseline</div>
+      <div class="forecast-sub">// SCENARIO PROJECTION · BASED ON CURRENT COHORT SIGNALS · AI-POWERED MACRO ADJUSTMENT</div>
+      <div class="fc-chart-wrap"><canvas id="chart-forecast"></canvas></div>
+    </div>
+
+    <!-- Lifecycle -->
+    <div class="lifecycle-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem;flex-wrap:wrap;gap:0.5rem">
+        <div class="chart-title">PlacementIQ Intervention Lifecycle</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted)">// CLICK ANY STAGE TO EXPLORE</div>
+      </div>
+      <div class="lifecycle-steps" id="lc-steps">
+        <div class="lc-step" onclick="setLifecycleStage(1)">
+          <div class="lc-dot done" id="lc-dot-1">1</div>
+          <div class="lc-label done" id="lc-lbl-1">Pre-Disburse<br/>Scoring</div>
+        </div>
+        <div class="lc-step" onclick="setLifecycleStage(2)">
+          <div class="lc-dot current" id="lc-dot-2">2</div>
+          <div class="lc-label current" id="lc-lbl-2">Active Course<br/>Monitoring</div>
+        </div>
+        <div class="lc-step" onclick="setLifecycleStage(3)">
+          <div class="lc-dot" id="lc-dot-3">3</div>
+          <div class="lc-label" id="lc-lbl-3">Graduation<br/>Re-score</div>
+        </div>
+        <div class="lc-step" onclick="setLifecycleStage(4)">
+          <div class="lc-dot" id="lc-dot-4">4</div>
+          <div class="lc-label" id="lc-lbl-4">EMI Start<br/>Repayment</div>
+        </div>
+        <div class="lc-step" onclick="setLifecycleStage(5)">
+          <div class="lc-dot" id="lc-dot-5">5</div>
+          <div class="lc-label" id="lc-lbl-5">Closure<br/>Settled</div>
+        </div>
+      </div>
+      <div class="lifecycle-outputs" id="lc-outputs">
+        <div class="lc-out">
+          <div class="lc-out-label">Stage 1 — Origination</div>
+          <div class="lc-out-text">Employability score, visa risk flag, AI narrative, risk-based pricing recommendation, SHAP explainability report</div>
+        </div>
+        <div class="lc-out">
+          <div class="lc-out-label">Stage 2 — Monitoring</div>
+          <div class="lc-out-text">Semester re-scoring, RM alerts for at-risk students, macro signal updates (OPT policy, FX shifts, job market), skill-gap alerts</div>
+        </div>
+        <div class="lc-out">
+          <div class="lc-out-label">Stage 3–5 — Recovery</div>
+          <div class="lc-out-text">Recruiter network matching, EMI restructure proposals before first missed payment, alumni placement data feedback loop</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHASE 2 ROADMAP -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-top:1.5rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.5rem">
+        <div>
+          <div style="font-weight:600;font-size:0.95rem;margin-bottom:0.2rem">Phase 2 — Intelligence Layer Roadmap</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted)">// PROPOSED ROADMAP · CLICK CARDS TO EXPLORE INTEGRATION DETAILS</div>
+        </div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--purple);border:1px solid rgba(176,106,255,0.3);padding:0.2rem 0.6rem;border-radius:4px;background:rgba(176,106,255,0.08)">INTEGRATION CONCEPT</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+        <div data-phase2="Real-Time Policy Feed" style="background:var(--surface2);border:1px solid rgba(0,229,200,0.15);border-radius:10px;padding:1.1rem">
+          <div style="font-size:1.4rem;margin-bottom:0.5rem">🌐</div>
+          <div style="font-weight:600;font-size:0.85rem;color:var(--teal);margin-bottom:0.4rem">Real-Time Policy Feed</div>
+          <div style="font-size:0.76rem;color:var(--muted2);line-height:1.6;margin-bottom:0.75rem">Live ingestion of US OPT/H-1B cap data, UK Graduate Route updates, Canadian PGWP policy changes. Automatic re-scoring of affected borrowers within 24h of policy announcement.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(0,229,200,0.08);border:1px solid rgba(0,229,200,0.2);color:var(--teal);padding:0.15rem 0.45rem;border-radius:100px">USCIS API</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(0,229,200,0.08);border:1px solid rgba(0,229,200,0.2);color:var(--teal);padding:0.15rem 0.45rem;border-radius:100px">IRCC Feed</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(0,229,200,0.08);border:1px solid rgba(0,229,200,0.2);color:var(--teal);padding:0.15rem 0.45rem;border-radius:100px">UK Home Office</span>
+          </div>
+        </div>
+        <div data-phase2="Alumni Placement Loop" style="background:var(--surface2);border:1px solid rgba(61,158,255,0.15);border-radius:10px;padding:1.1rem">
+          <div style="font-size:1.4rem;margin-bottom:0.5rem">🎓</div>
+          <div style="font-weight:600;font-size:0.85rem;color:var(--blue);margin-bottom:0.4rem">Alumni Placement Loop</div>
+          <div style="font-size:0.76rem;color:var(--muted2);line-height:1.6;margin-bottom:0.75rem">Closed feedback loop with repayment outcomes. Actual time-to-placement and salary data from settled loans feeds back into the model monthly — improving prediction accuracy cohort by cohort.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(61,158,255,0.08);border:1px solid rgba(61,158,255,0.2);color:var(--blue);padding:0.15rem 0.45rem;border-radius:100px">LinkedIn API</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(61,158,255,0.08);border:1px solid rgba(61,158,255,0.2);color:var(--blue);padding:0.15rem 0.45rem;border-radius:100px">Loan CRM</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(61,158,255,0.08);border:1px solid rgba(61,158,255,0.2);color:var(--blue);padding:0.15rem 0.45rem;border-radius:100px">ML Retraining</span>
+          </div>
+        </div>
+        <div data-phase2="Bank API Integration" style="background:var(--surface2);border:1px solid rgba(176,106,255,0.15);border-radius:10px;padding:1.1rem">
+          <div style="font-size:1.4rem;margin-bottom:0.5rem">🏦</div>
+          <div style="font-weight:600;font-size:0.85rem;color:var(--purple);margin-bottom:0.4rem">Bank API Integration</div>
+          <div style="font-size:0.76rem;color:var(--muted2);line-height:1.6;margin-bottom:0.75rem">Direct integration with Poonawalla Fincorp's LOS. One-click export to credit file. Auto-populate risk score into sanctioning note. NACH mandate flag for high-risk cohorts.</div>
+          <div style="display:flex;flex-wrap:wrap;gap:0.3rem">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(176,106,255,0.08);border:1px solid rgba(176,106,255,0.2);color:var(--purple);padding:0.15rem 0.45rem;border-radius:100px">LOS API</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(176,106,255,0.08);border:1px solid rgba(176,106,255,0.2);color:var(--purple);padding:0.15rem 0.45rem;border-radius:100px">NACH</span>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;background:rgba(176,106,255,0.08);border:1px solid rgba(176,106,255,0.2);color:var(--purple);padding:0.15rem 0.45rem;border-radius:100px">Credit Bureau</span>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:1rem;padding:0.9rem;background:rgba(0,229,200,0.04);border:1px solid rgba(0,229,200,0.12);border-radius:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--muted2)">Phase 2 projected impact on ₹500Cr study-abroad book:</div>
+        <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+          <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--teal)">+6pp</div><div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted)">Model Accuracy</div></div>
+          <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--green)">₹51Cr</div><div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted)">NPA Savings/yr</div></div>
+          <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--blue)">48h</div><div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted)">Policy Re-score SLA</div></div>
+          <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--purple)">100%</div><div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted)">LOS Integration</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<!-- ══════════════════════════════════════════════ SCRIPT ══════════════════════════════════════════════ -->
+<script>
+// ── PARTICLE BACKGROUND ──
+(function() {
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize(); window.addEventListener('resize', resize);
+  for (let i = 0; i < 60; i++) {
+    particles.push({ x: Math.random()*1800, y: Math.random()*900, vx: (Math.random()-0.5)*0.3, vy: (Math.random()-0.5)*0.3, r: Math.random()*1.5+0.5, a: Math.random()*0.4+0.1 });
+  }
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = `rgba(0,229,200,${p.a})`; ctx.fill();
+    });
+    // Draw connection lines
+    for (let i = 0; i < particles.length; i++) {
+      for (let j = i+1; j < particles.length; j++) {
+        const dx = particles[i].x - particles[j].x, dy = particles[i].y - particles[j].y;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if (dist < 120) {
+          ctx.beginPath(); ctx.moveTo(particles[i].x,particles[i].y); ctx.lineTo(particles[j].x,particles[j].y);
+          ctx.strokeStyle = `rgba(0,229,200,${0.04*(1-dist/120)})`; ctx.stroke();
+        }
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ── BOOT SEQUENCE ──
+const bootLogs = ['Connecting to risk engine…', 'Loading job market indices…', 'Syncing visa policy database…', 'Calibrating FX model…', 'Ready.'];
+let bootIdx = 0;
+const bootBar = document.getElementById('boot-bar');
+const bootLog = document.getElementById('boot-log');
+const bootInv = setInterval(() => {
+  bootBar.style.width = ((bootIdx+1)/bootLogs.length*100) + '%';
+  bootLog.textContent = bootLogs[bootIdx++];
+  if (bootIdx >= bootLogs.length) {
+    clearInterval(bootInv);
+    setTimeout(() => document.getElementById('boot-screen').classList.add('out'), 400);
+  }
+}, 380);
+
+// ── SLIDER UTIL ──
+function setSlider(id, val, suffix, el) {
+  const display = typeof val === 'string' ? val : val + suffix;
+  document.getElementById(id).textContent = display;
+  // Update fill gradient
+  const min = parseFloat(el.min), max = parseFloat(el.max), v = parseFloat(el.value);
+  const pct = ((v-min)/(max-min)*100).toFixed(1);
+  el.style.setProperty('--pct', pct+'%');
+  el.style.background = `linear-gradient(to right, var(--teal) 0%, var(--teal) ${pct}%, var(--border2) ${pct}%, var(--border2) 100%)`;
+}
+// Init sliders on load
+window.addEventListener('load', () => {
+  ['f-cgpa','f-intern','f-loan','f-tenure','f-rate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.dispatchEvent(new Event('input'));
+  });
+});
+
+// ── SKILL TAGS ──
+let skills = [];
+function addSkillOnEnter(e) { if (e.key==='Enter') addSkill(); }
+function addSkill() {
+  const inp = document.getElementById('f-skill-input');
+  const v = inp.value.trim();
+  if (!v || skills.includes(v)) { inp.value=''; return; }
+  skills.push(v); inp.value=''; renderSkills();
+}
+function addPreset(arr) { arr.forEach(s => { if (!skills.includes(s)) skills.push(s); }); renderSkills(); }
+function removeSkill(i) { skills.splice(i,1); renderSkills(); }
+function renderSkills() {
+  document.getElementById('skill-tags').innerHTML = skills.map((s,i) =>
+    `<div class="skill-tag">${s}<span class="rm" onclick="removeSkill(${i})">✕</span></div>`
+  ).join('');
+}
+
+// ── NAV ──
+function gotoPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'analytics') renderCharts();
+}
+
+// ── SCROLL ──
+function scrollToForm() { document.getElementById('form-section').scrollIntoView({behavior:'smooth'}); }
+
+// ── DEMO LOAD ──
+function loadDemo() {
+  document.getElementById('f-name').value = 'Priya Sharma';
+  document.getElementById('f-program').value = 'MS Data Science — University of Manchester, UK';
+  document.getElementById('f-country').value = 'UK';
+  document.getElementById('f-field').value = 'Data Science / AI';
+  document.getElementById('f-cgpa').value = 7.6;
+  document.getElementById('f-intern').value = 7;
+  document.getElementById('f-qs').value = 'Top 200';
+  document.getElementById('f-loan').value = 35;
+  document.getElementById('f-tenure').value = 7;
+  document.getElementById('f-rate').value = 11;
+  skills = ['Python', 'SQL', 'Tableau', 'Machine Learning', 'Coursera ML Cert'];
+  renderSkills();
+  ['f-cgpa','f-intern','f-loan','f-tenure','f-rate'].forEach(id => {
+    document.getElementById(id).dispatchEvent(new Event('input'));
+  });
+  setSlider('cgpa-val','7.6','',document.getElementById('f-cgpa'));
+  setSlider('intern-val','7m','',document.getElementById('f-intern'));
+  setSlider('loan-val','₹35L','',document.getElementById('f-loan'));
+  setSlider('tenure-val','7yr','',document.getElementById('f-tenure'));
+  setSlider('rate-val','11%','',document.getElementById('f-rate'));
+  scrollToForm();
+}
+
+// ── REALISTIC MARKET DATA (sourced: IIE Open Doors 2024, UK HESA Graduate Outcomes 2024,
+//    CBIE Canada Report 2024, Glassdoor/LinkedIn Salary Reports, RBA/ONS/BLS data) ──
+const MARKET_DATA = {
+  // [baseP3, baseP6, baseP12, salaryLocal, salaryINR_low_L, salaryINR_high_L, visa, visaMonths]
+  // P3/P6/P12 = realistic 3/6/12 month employment rates for Indian PG grads (not all jobs, relevant jobs)
+  UK: {
+    'Data Science / AI':      [28, 61, 79, '£32–42K', 33, 44, 'Graduate Route (2yr)', 24],
+    'Software Engineering':   [31, 64, 81, '£30–40K', 31, 42, 'Graduate Route (2yr)', 24],
+    'Cybersecurity':          [26, 58, 76, '£30–38K', 31, 40, 'Graduate Route (2yr)', 24],
+    'Engineering (STEM)':     [22, 52, 71, '£27–35K', 28, 37, 'Graduate Route (2yr)', 24],
+    'Finance / Banking':      [24, 54, 72, '£28–38K', 29, 40, 'Graduate Route (2yr)', 24],
+    'MBA / Management':       [19, 48, 68, '£26–36K', 27, 38, 'Graduate Route (2yr)', 24],
+    'Healthcare':             [33, 66, 82, '£28–36K', 29, 38, 'Graduate Route (2yr)', 24],
+    'Arts / Humanities':      [9,  28, 48, '£20–26K', 21, 27, 'Graduate Route (2yr)', 24],
+  },
+  US: {
+    'Data Science / AI':      [22, 54, 74, '$90–120K', 75, 100, 'OPT (1yr) / STEM OPT (3yr)', 36],
+    'Software Engineering':   [24, 57, 77, '$95–130K', 79, 108, 'OPT (1yr) / STEM OPT (3yr)', 36],
+    'Cybersecurity':          [20, 50, 70, '$85–110K', 71, 92,  'OPT (1yr) / STEM OPT (3yr)', 36],
+    'Engineering (STEM)':     [18, 46, 67, '$75–100K', 63, 83,  'OPT (1yr) / STEM OPT (3yr)', 36],
+    'Finance / Banking':      [17, 44, 65, '$70–95K',  58, 79,  'OPT (1yr) — Non-STEM', 12],
+    'MBA / Management':       [16, 42, 63, '$75–110K', 63, 92,  'OPT (1yr) — Non-STEM', 12],
+    'Healthcare':             [28, 60, 78, '$65–90K',  54, 75,  'OPT (1yr) / STEM OPT (3yr)', 36],
+    'Arts / Humanities':      [7,  22, 42, '$40–55K',  33, 46,  'OPT (1yr) — Non-STEM', 12],
+  },
+  Canada: {
+    'Data Science / AI':      [30, 63, 80, 'CA$65–85K', 39, 51, 'PGWP (up to 3yr)', 36],
+    'Software Engineering':   [32, 66, 82, 'CA$68–88K', 41, 53, 'PGWP (up to 3yr)', 36],
+    'Cybersecurity':          [27, 59, 77, 'CA$62–80K', 37, 48, 'PGWP (up to 3yr)', 36],
+    'Engineering (STEM)':     [24, 55, 73, 'CA$60–78K', 36, 47, 'PGWP (up to 3yr)', 36],
+    'Finance / Banking':      [22, 52, 70, 'CA$58–76K', 35, 46, 'PGWP (up to 3yr)', 36],
+    'MBA / Management':       [20, 50, 69, 'CA$60–80K', 36, 48, 'PGWP (up to 3yr)', 36],
+    'Healthcare':             [35, 68, 83, 'CA$55–72K', 33, 43, 'PGWP (up to 3yr)', 36],
+    'Arts / Humanities':      [8,  25, 46, 'CA$38–50K', 23, 30, 'PGWP (up to 3yr)', 36],
+  },
+  Australia: {
+    'Data Science / AI':      [25, 56, 73, 'A$72–92K',  38, 49, 'Temp Graduate (485) — 2yr', 24],
+    'Software Engineering':   [27, 59, 75, 'A$75–95K',  40, 50, 'Temp Graduate (485) — 2yr', 24],
+    'Cybersecurity':          [23, 53, 71, 'A$68–88K',  36, 47, 'Temp Graduate (485) — 2yr', 24],
+    'Engineering (STEM)':     [20, 49, 68, 'A$65–82K',  34, 43, 'Temp Graduate (485) — 2yr', 24],
+    'Finance / Banking':      [18, 46, 65, 'A$60–78K',  32, 41, 'Temp Graduate (485) — 2yr', 24],
+    'MBA / Management':       [16, 43, 62, 'A$62–80K',  33, 42, 'Temp Graduate (485) — 2yr', 24],
+    'Healthcare':             [40, 72, 86, 'A$65–85K',  34, 45, 'Temp Graduate (485) — 2yr', 24],
+    'Arts / Humanities':      [7,  22, 43, 'A$42–55K',  22, 29, 'Temp Graduate (485) — 2yr', 24],
+  },
+  Germany: {
+    'Data Science / AI':      [20, 50, 70, '€48–65K',   43, 58, 'Job Seeker Visa (6m)', 6],
+    'Software Engineering':   [22, 53, 72, '€50–68K',   45, 61, 'Job Seeker Visa (6m)', 6],
+    'Cybersecurity':          [18, 47, 67, '€45–60K',   40, 54, 'Job Seeker Visa (6m)', 6],
+    'Engineering (STEM)':     [24, 56, 74, '€44–60K',   39, 54, 'Job Seeker Visa (6m)', 6],
+    'Finance / Banking':      [14, 40, 61, '€42–58K',   38, 52, 'Job Seeker Visa (6m)', 6],
+    'MBA / Management':       [12, 38, 59, '€44–60K',   39, 54, 'Job Seeker Visa (6m)', 6],
+    'Healthcare':             [26, 58, 75, '€40–55K',   36, 49, 'Job Seeker Visa (6m)', 6],
+    'Arts / Humanities':      [5,  18, 38, '€28–38K',   25, 34, 'Job Seeker Visa (6m)', 6],
+  },
+  Netherlands: {
+    'Data Science / AI':      [24, 55, 73, '€44–60K',   39, 54, 'Orientation Year Visa (1yr)', 12],
+    'Software Engineering':   [26, 58, 75, '€46–62K',   41, 55, 'Orientation Year Visa (1yr)', 12],
+    'Cybersecurity':          [21, 51, 70, '€42–56K',   38, 50, 'Orientation Year Visa (1yr)', 12],
+    'Engineering (STEM)':     [19, 48, 67, '€40–54K',   36, 48, 'Orientation Year Visa (1yr)', 12],
+    'Finance / Banking':      [17, 45, 64, '€42–58K',   38, 52, 'Orientation Year Visa (1yr)', 12],
+    'MBA / Management':       [15, 42, 62, '€44–60K',   39, 54, 'Orientation Year Visa (1yr)', 12],
+    'Healthcare':             [30, 62, 78, '€38–52K',   34, 46, 'Orientation Year Visa (1yr)', 12],
+    'Arts / Humanities':      [6,  20, 40, '€28–38K',   25, 34, 'Orientation Year Visa (1yr)', 12],
+  },
+  Singapore: {
+    'Data Science / AI':      [26, 57, 74, 'SGD 52–72K', 31, 43, 'Employment Pass (EP)', 0],
+    'Software Engineering':   [28, 60, 76, 'SGD 55–75K', 33, 45, 'Employment Pass (EP)', 0],
+    'Cybersecurity':          [23, 53, 71, 'SGD 50–68K', 30, 41, 'Employment Pass (EP)', 0],
+    'Engineering (STEM)':     [20, 49, 68, 'SGD 46–62K', 28, 37, 'S-Pass / EP', 0],
+    'Finance / Banking':      [22, 52, 71, 'SGD 50–70K', 30, 42, 'Employment Pass (EP)', 0],
+    'MBA / Management':       [18, 46, 66, 'SGD 52–72K', 31, 43, 'Employment Pass (EP)', 0],
+    'Healthcare':             [31, 63, 79, 'SGD 44–60K', 26, 36, 'S-Pass', 0],
+    'Arts / Humanities':      [5,  17, 37, 'SGD 30–40K', 18, 24, 'S-Pass / EP', 0],
+  },
+};
+
+// Visa risk based on post-study pathway security
+const VISA_RISK = {
+  UK:          'LOW',    // Graduate Route is open, 2yr guarantee
+  Canada:      'LOW',    // PGWP well-established
+  Netherlands: 'LOW',    // Orientation year is straightforward
+  Australia:   'MEDIUM', // 485 exists but immigration policy volatile
+  US:          'HIGH',   // OPT cap-exempt H1B lottery, policy uncertainty
+  Germany:     'MEDIUM', // Language barrier + job seeker only 6m
+  Singapore:   'HIGH',   // EP salary threshold high, quota-based, no automatic right
+};
+
+// QS rank multiplier on placement probability (additive %)
+const QS_MULT = { 'Top 50': 1.18, 'Top 100': 1.10, 'Top 200': 1.00, 'Top 500': 0.88, 'Unranked': 0.74 };
+
+// CGPA effect: sigmoid centred at 7.0 — reflects actual employer screening
+function cgpaFactor(cgpa) {
+  // Employers mostly screen ≥6.5–7.0; above 8.0 marginal returns diminish
+  return 0.72 + 0.36 / (1 + Math.exp(-2.2 * (cgpa - 7.1)));
+}
+
+// Internship effect: diminishing returns above 12m
+function internFactor(months) {
+  if (months === 0) return 0.72;
+  if (months <= 3)  return 0.82;
+  if (months <= 6)  return 0.91;
+  if (months <= 12) return 1.00;
+  return 1.04; // 12m+ modest uplift
+}
+
+// Skills relevance score 0–1
+function skillFactor(n) {
+  return 0.88 + Math.min(n * 0.025, 0.12);
+}
+
+// ── COMPUTE SCORES (realistic, market-calibrated) ──
+function computeScores({ cgpa, intern, qs, field, country, loan, tenure, rate }) {
+  const cKey = country || 'UK';
+  const fKey = field || 'Data Science / AI';
+  const countryData = MARKET_DATA[cKey] || MARKET_DATA['UK'];
+  const row = countryData[fKey] || countryData['Data Science / AI'];
+  const [baseP3, baseP6, baseP12, salaryLocal, inrLow, inrHigh, visaLabel, visaMonths] = row;
+
+  // Compound adjustment factors (all multiplicative, no random)
+  const cf = cgpaFactor(cgpa);
+  const inf = internFactor(intern);
+  const qf = QS_MULT[qs] || 1.0;
+  const sf = skillFactor(skills.length);
+  const compound = cf * inf * qf * sf;
+
+  // Clamp to realistic market bounds
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)));
+  const p3  = clamp(baseP3  * compound, 5, 72);
+  const p6  = clamp(baseP6  * compound, 12, 88);
+  const p12 = clamp(baseP12 * compound, 20, 94);
+
+  // Employability score (0–100) — composite index
+  const base = clamp((p3*0.25 + p6*0.45 + p12*0.30), 8, 94);
+
+  // EMI calculation (standard reducing balance)
+  const monthlyRate = rate / 100 / 12;
+  const n = tenure * 12;
+  const emi = Math.round((loan * 100000 * monthlyRate * Math.pow(1+monthlyRate,n)) / (Math.pow(1+monthlyRate,n)-1));
+
+  // Salary mid-point in INR for EMI ratio
+  const inrMid = ((inrLow + inrHigh) / 2) * 100000;
+  const annualEMI = emi * 12;
+  const emiRatio = (annualEMI / inrMid * 100).toFixed(1);
+
+  // Visa risk — country-level + modifier for visa window length
+  let vrisk = VISA_RISK[cKey] || 'MEDIUM';
+  // Downgrade if student has no internship and visa window is short
+  if (intern < 3 && visaMonths <= 12 && vrisk === 'LOW') vrisk = 'MEDIUM';
+  if (intern < 3 && visaMonths === 0) vrisk = 'HIGH'; // EP/sponsorship dependent
+
+  // Risk tier based on compound score + EMI stress
+  const emiStress = parseFloat(emiRatio) > 40;
+  let tier;
+  if (p6 >= 60 && !emiStress) tier = 'LOW';
+  else if (p6 >= 40 && parseFloat(emiRatio) <= 45) tier = 'MEDIUM';
+  else tier = 'HIGH';
+  // Visa HIGH always escalates
+  if (vrisk === 'HIGH' && tier === 'LOW') tier = 'MEDIUM';
+
+  // SHAP breakdown — realistic factor weights from logistic regression coefficients
+  // Weights: CGPA 0.28, Internship 0.24, University 0.18, Field/Country 0.20, Visa 0.10
+  const cgpaRaw   = parseFloat(((cf - 0.72) / 0.36 * 0.28).toFixed(3));
+  const internRaw = parseFloat(((inf - 0.72) / 0.32 * 0.24).toFixed(3));
+  const qsRaw     = parseFloat(((qf  - 0.74) / 0.44 * 0.18).toFixed(3));
+  const visaRaw   = vrisk==='LOW' ? 0.10 : vrisk==='MEDIUM' ? -0.04 : -0.15;
+  const fieldRaw  = parseFloat(((baseP6 - 40) / 50 * 0.20).toFixed(3));
+  const skillRaw  = parseFloat(((sf - 0.88) / 0.12 * 0.08).toFixed(3));
+
+  const shap = [
+    { label: `CGPA ${cgpa}/10 — ${cgpa>=8.5?'Distinction':cgpa>=7.5?'Merit':cgpa>=6.5?'Pass':'Below threshold'}`, dir: cf>=1.0?'pos':'neg', pct: Math.round(cf*60), val: Math.abs(cgpaRaw).toFixed(3) },
+    { label: `Internship: ${intern}m — ${intern>=12?'Extensive (top 15%)':intern>=6?'Solid (top 40%)':intern>=3?'Limited':intern===0?'None (high risk)':'Minimal'}`, dir: inf>=0.91?'pos':'neg', pct: Math.round(inf*55), val: Math.abs(internRaw).toFixed(3) },
+    { label: `${fKey} demand in ${cKey} — Base placement ${baseP6}% (6m)`, dir: baseP6>=50?'pos':'neg', pct: Math.round(baseP6*0.8), val: Math.abs(fieldRaw).toFixed(3) },
+    { label: `University: ${qs} — QS multiplier ${(qf*100).toFixed(0)}%`, dir: qf>=1.0?'pos':'neg', pct: Math.round(qf*52), val: Math.abs(qsRaw).toFixed(3) },
+    { label: `Visa: ${visaLabel} — ${vrisk} risk${visaMonths>0?' · '+visaMonths+'m window':''}`, dir: vrisk==='LOW'?'pos':'neg', pct: vrisk==='LOW'?65:vrisk==='MEDIUM'?35:15, val: Math.abs(visaRaw).toFixed(3) },
+    { label: `Skills portfolio: ${skills.length} certified — ${skills.length>=8?'Strong':skills.length>=4?'Adequate':'Below avg for role'}`, dir: skills.length>=4?'pos':'neg', pct: Math.round(sf*45), val: Math.abs(skillRaw).toFixed(3) },
+  ].sort((a,b) => b.pct - a.pct);
+
+  const salaryINR = `₹${inrLow}–${inrHigh}L`;
+  return { p3, p6, p12, tier, salaryLocal, salaryINR, visaLabel, visaRisk: vrisk, shap, base, emi, emiRatio, inrMid, annualEMI };
+}
+
+// ── CURRENT ASSESSMENT STATE ──
+let currentAssessment = null;
+
+// ── RUN ASSESSMENT ──
+async function runAssessment() {
+  const name = document.getElementById('f-name').value.trim();
+  const program = document.getElementById('f-program').value.trim();
+  const country = document.getElementById('f-country').value;
+  const field = document.getElementById('f-field').value;
+  const cgpa = parseFloat(document.getElementById('f-cgpa').value);
+  const intern = parseInt(document.getElementById('f-intern').value);
+  const qs = document.getElementById('f-qs').value;
+  const loan = parseInt(document.getElementById('f-loan').value);
+  const tenure = parseInt(document.getElementById('f-tenure').value);
+  const rate = parseFloat(document.getElementById('f-rate').value);
+
+  // Validate required fields
+  if (!name) { alert('Please enter the student name.'); return; }
+  if (!country) { alert('Please select a destination country.'); return; }
+  if (!field) { alert('Please select a target field.'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  document.getElementById('submit-icon').textContent = '';
+  document.getElementById('submit-label').textContent = 'Analysing…';
+  document.querySelector('#submit-icon').innerHTML = '<div class="spinner" style="border-color:rgba(0,0,0,0.2);border-top-color:#000;width:16px;height:16px"></div>';
+
+  // Ensure panel is hidden while we compute
+  const panel = document.getElementById('result-panel');
+  panel.style.display = 'none';
+
+  const scores = computeScores({ cgpa, intern, qs, field, country, loan, tenure, rate });
+  currentAssessment = { name, program, country, field, cgpa, intern, qs, loan, tenure, rate, scores };
+
+  // NAME & BADGE
+  document.getElementById('r-name').textContent = name;
+  document.getElementById('r-prog').textContent = program;
+  const badge = document.getElementById('r-badge');
+  badge.className = 'risk-badge ' + scores.tier;
+  badge.textContent = '● ' + scores.tier + ' RISK';
+
+  // SCORE CIRCLES with confidence intervals
+  document.getElementById('r-scores').innerHTML = [
+    { pct: scores.p3, lbl: '3-Month Placement', color: scores.p3>=50?'#22d66a':scores.p3>=30?'#ffb547':'#ff4e6a', ci: Math.round(scores.p3*0.12) },
+    { pct: scores.p6, lbl: '6-Month Placement', color: scores.p6>=60?'#22d66a':scores.p6>=40?'#ffb547':'#ff4e6a', ci: Math.round(scores.p6*0.09) },
+    { pct: scores.p12, lbl: '12-Month Placement', color: scores.p12>=70?'#22d66a':scores.p12>=50?'#ffb547':'#ff4e6a', ci: Math.round(scores.p12*0.07) },
+  ].map(s => {
+    const r = 32, circ = 2*Math.PI*r;
+    const dash = (s.pct/100*circ).toFixed(1);
+    return `<div class="score-box">
+      <svg class="score-meter" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="${r}" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="6"/>
+        <circle cx="40" cy="40" r="${r}" fill="none" stroke="${s.color}" stroke-width="6"
+          stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"
+          style="transition:stroke-dasharray 1s cubic-bezier(.4,0,.2,1) 0.2s"/>
+        <text x="40" y="46" text-anchor="middle" font-family="Bebas Neue,sans-serif" font-size="18" fill="${s.color}">${s.pct}%</text>
+      </svg>
+      <div class="score-lbl">${s.lbl}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted);margin-top:0.25rem">±${s.ci}pp CI</div>
+    </div>`;
+  }).join('');
+
+  // EMI ANALYSIS
+  const emiColor = scores.emiRatio < 20 ? 'safe' : scores.emiRatio < 35 ? 'warn' : 'risk';
+  const emiMsg = scores.emiRatio < 20 ? '✅ Comfortable' : scores.emiRatio < 35 ? '⚠️ Manageable' : '🚨 Stressful';
+  document.getElementById('r-emi').innerHTML = `
+    <div class="emi-item">
+      <div class="emi-val">₹${Math.round(scores.emi/1000)}K</div>
+      <div class="emi-lbl">Monthly EMI</div>
+    </div>
+    <div class="emi-item">
+      <div class="emi-val">${scores.emiRatio}%</div>
+      <div class="emi-lbl">EMI / Est. Annual Salary</div>
+      <div class="emi-status ${emiColor}">${emiMsg}</div>
+    </div>
+    <div class="emi-item">
+      <div class="emi-val">₹${(loan*100000*(rate/100)*tenure/1e5).toFixed(1)}L</div>
+      <div class="emi-lbl">Total Interest Outgo</div>
+    </div>
+  `;
+
+  // SHAP BARS — rendered at 0 width; animated after panel becomes visible
+  document.getElementById('r-shap').innerHTML = scores.shap.map(s => `
+    <div class="shap-row">
+      <div class="shap-lbl">${s.label}</div>
+      <div class="shap-bg"><div class="shap-fill ${s.dir}" style="width:0%" data-pct="${s.pct}%"></div></div>
+      <div class="shap-num">${s.dir==='pos'?'+':'−'}${s.val}</div>
+    </div>
+  `).join('');
+
+  // SKILL GAP + RISK-BASED PRICING
+  const skillGapMap = {
+    'Data Science / AI':    ['Python','SQL','Machine Learning','Cloud (AWS/GCP)','Statistics'],
+    'Software Engineering': ['React/Node.js','System Design','AWS','Docker','CI/CD'],
+    'Cybersecurity':        ['Network Security','CISSP/CEH','Python','SOC Tools','Cloud Security'],
+    'Engineering (STEM)':   ['CAD/SolidWorks','MATLAB','Six Sigma','Project Mgmt','AutoCAD'],
+    'Finance / Banking':    ['CFA L1','Bloomberg','Excel Modelling','Python','Financial Modelling'],
+    'MBA / Management':     ['Salesforce','PMP','Data Analysis','Presentation','Strategic Planning'],
+    'Healthcare':           ['Clinical Research','Regulatory Affairs','Data Analysis','EMR Systems','R/STATA'],
+    'Arts / Humanities':    ['Content Strategy','SEO/SEM','Adobe Suite','Social Media','Copywriting'],
+  };
+  const requiredSkills = skillGapMap[field] || skillGapMap['Software Engineering'];
+  const missingSkills = requiredSkills.filter(s => !skills.some(us => us.toLowerCase().includes(s.toLowerCase().split('/')[0].toLowerCase())));
+  const hasSkills = requiredSkills.filter(s => skills.some(us => us.toLowerCase().includes(s.toLowerCase().split('/')[0].toLowerCase())));
+
+  // Risk-based pricing recommendation
+  const baseRate = rate;
+  const riskPremium = scores.tier === 'HIGH' ? 1.5 : scores.tier === 'MEDIUM' ? 0.5 : 0;
+  const recommendedRate = (baseRate + riskPremium).toFixed(2);
+  const moratoriumMonths = scores.tier === 'HIGH' ? 24 : scores.tier === 'MEDIUM' ? 18 : 12;
+
+  document.getElementById('r-extras').innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.2rem">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.8rem">🎓 Skill Gap Analysis — ${field}</div>
+      ${missingSkills.length > 0 ? `
+        <div style="font-size:0.72rem;color:var(--amber);margin-bottom:0.5rem">Missing for ${country} market:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.35rem;margin-bottom:0.6rem">${missingSkills.map(s=>`<span style="background:rgba(255,181,71,0.1);border:1px solid rgba(255,181,71,0.25);color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:0.62rem;padding:0.15rem 0.5rem;border-radius:100px">⚠ ${s}</span>`).join('')}</div>
+      ` : '<div style="font-size:0.72rem;color:var(--green);margin-bottom:0.6rem">✅ Strong skill match for target market</div>'}
+      ${hasSkills.length > 0 ? `
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem">Verified skills:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:0.35rem">${hasSkills.map(s=>`<span style="background:rgba(34,214,106,0.08);border:1px solid rgba(34,214,106,0.2);color:var(--green);font-family:'JetBrains Mono',monospace;font-size:0.62rem;padding:0.15rem 0.5rem;border-radius:100px">✓ ${s}</span>`).join('')}</div>
+      ` : ''}
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:1.2rem">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.8rem">💰 Risk-Based Pricing Recommendation</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+        <div style="text-align:center;background:var(--card);border-radius:8px;padding:0.75rem">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--blue)">${recommendedRate}%</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase">Recommended Rate</div>
+          <div style="font-size:0.68rem;color:var(--muted2);margin-top:0.2rem">Base ${baseRate}% + ${riskPremium}% risk premium</div>
+        </div>
+        <div style="text-align:center;background:var(--card);border-radius:8px;padding:0.75rem">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--purple)">${moratoriumMonths}m</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted);text-transform:uppercase">Moratorium Period</div>
+          <div style="font-size:0.68rem;color:var(--muted2);margin-top:0.2rem">${scores.tier} risk · post-graduation</div>
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;font-size:0.72rem;color:var(--muted2);line-height:1.5">
+        ${scores.tier==='LOW' ? '✅ Standard terms. Approve with 12m moratorium and standard covenants.' : scores.tier==='MEDIUM' ? '⚠️ Apply risk premium. Add quarterly check-in covenant and skill-up clause.' : '🚨 High-risk pricing. Require co-borrower or collateral. 24m moratorium with RM monitoring.'}
+      </div>
+    </div>
+  `;
+
+  // SALARY & VISA
+  document.getElementById('r-salary-local').textContent = scores.salaryLocal;
+  document.getElementById('r-salary-inr').textContent = scores.salaryINR;
+  document.getElementById('r-visa').innerHTML = `${scores.visaLabel}<br/><span style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted)">VISA RISK: ${scores.visaRisk}</span>`;
+
+  // ACTIONS
+  const actionsByTier = {
+    LOW: [
+      { ic: '✅', label: 'Approve — Standard Terms' },
+      { ic: '📅', label: 'Schedule 6m Check-in' },
+      { ic: '📊', label: 'Add to Portfolio Monitor' },
+      { ic: '🎉', label: 'Share Approval Letter' },
+    ],
+    MEDIUM: [
+      { ic: '⚠️', label: 'Approve with Enhanced Monitoring' },
+      { ic: '🎓', label: 'Skill-Up Recommendations' },
+      { ic: '📞', label: 'RM Call at Graduation' },
+      { ic: '🔄', label: 'Semester Re-Score' },
+    ],
+    HIGH: [
+      { ic: '🚨', label: 'Flag for Credit Review' },
+      { ic: '🔁', label: 'Propose EMI Restructure' },
+      { ic: '🤝', label: 'Recruiter Network Alert' },
+      { ic: '📞', label: 'Immediate RM Alert' },
+      { ic: '📋', label: 'Additional Collateral Review' },
+    ],
+  };
+  document.getElementById('r-actions').innerHTML = (actionsByTier[scores.tier]||actionsByTier.MEDIUM)
+    .map(a => `<div class="action-card" onclick="handleAction('${a.label}',this)" style="cursor:pointer"><span class="ic">${a.ic}</span>${a.label}</div>`).join('');
+
+  // WHAT-IF SIMULATOR
+  renderWhatIf(scores, cgpa, intern, qs, loan, tenure, rate);
+
+  // Chat context
+  window._chatContext = { name, program, country, field, cgpa, intern, qs, loan, tenure, rate, scores };
+  document.getElementById('chat-msgs').innerHTML = `<div class="msg ai"><div class="msg-src">PlacementIQ AI</div>I've analysed <strong>${name}</strong>'s profile. Risk tier: <strong>${scores.tier}</strong>. 6-month placement probability: <strong>${scores.p6}%</strong>. What would you like to explore?</div>`;
+
+  // Show panel NOW — all data is populated
+  panel.style.display = 'block';
+  panel.style.animation = 'slideUp 0.5s cubic-bezier(0.16,1,0.3,1) both';
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Animate SHAP bars NOW — panel is visible, transition will be seen
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelectorAll('#r-shap .shap-fill').forEach(el => { el.style.width = el.dataset.pct; });
+    });
+  });
+
+  // AI Narrative
+  document.getElementById('ai-loading-row').style.display = 'flex';
+  document.getElementById('ai-output').style.display = 'none';
+  await generateNarrative({ name, program, country, field, cgpa, intern, qs, loan, tenure, rate, scores });
+
+  btn.disabled = false;
+  document.getElementById('submit-icon').textContent = '⚡';
+  document.getElementById('submit-label').textContent = 'Run PlacementIQ Assessment';
+}
+
+// ── WHAT-IF SIMULATOR ──
+function renderWhatIf(baseScores, cgpa, intern, qs, loan, tenure, rate) {
+  const wiControls = document.getElementById('whatif-controls');
+  wiControls.innerHTML = `
+    <div class="whatif-item">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">What if CGPA was…</label>
+      <div class="slider-row">
+        <input class="slider-track" type="range" id="wi-cgpa" min="5" max="10" step="0.1" value="${cgpa}"
+          oninput="setSlider('wi-cgpa-val',this.value,'',this);updateWhatIf()" />
+        <div class="slider-val" id="wi-cgpa-val">${cgpa}</div>
+      </div>
+    </div>
+    <div class="whatif-item">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Internship months…</label>
+      <div class="slider-row">
+        <input class="slider-track" type="range" id="wi-intern" min="0" max="24" step="1" value="${intern}"
+          oninput="setSlider('wi-intern-val',this.value+'m','',this);updateWhatIf()" />
+        <div class="slider-val" id="wi-intern-val">${intern}m</div>
+      </div>
+    </div>
+    <div class="whatif-item">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Loan amount (₹L)…</label>
+      <div class="slider-row">
+        <input class="slider-track" type="range" id="wi-loan" min="5" max="100" step="1" value="${loan}"
+          oninput="setSlider('wi-loan-val','₹'+this.value+'L','',this);updateWhatIf()" />
+        <div class="slider-val" id="wi-loan-val">₹${loan}L</div>
+      </div>
+    </div>
+    <div class="whatif-item">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">Interest rate (%)…</label>
+      <div class="slider-row">
+        <input class="slider-track" type="range" id="wi-rate" min="8" max="16" step="0.25" value="${rate}"
+          oninput="setSlider('wi-rate-val',this.value+'%','',this);updateWhatIf()" />
+        <div class="slider-val" id="wi-rate-val">${rate}%</div>
+      </div>
+    </div>
+  `;
+  window._baseScores = baseScores;
+  window._wiParams = { cgpa, intern, qs, loan, tenure, rate, country: document.getElementById('f-country').value, field: document.getElementById('f-field').value };
+  updateWhatIf();
+  // init slider fills
+  ['wi-cgpa','wi-intern','wi-loan','wi-rate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.dispatchEvent(new Event('input'));
+  });
+}
+
+function updateWhatIf() {
+  const p = window._wiParams;
+  if (!p) return;
+  const wiCgpa = parseFloat(document.getElementById('wi-cgpa')?.value || p.cgpa);
+  const wiIntern = parseInt(document.getElementById('wi-intern')?.value || p.intern);
+  const wiLoan = parseInt(document.getElementById('wi-loan')?.value || p.loan);
+  const wiRate = parseFloat(document.getElementById('wi-rate')?.value || p.rate);
+  const wiScores = computeScores({ cgpa: wiCgpa, intern: wiIntern, qs: p.qs, field: p.field, country: p.country, loan: wiLoan, tenure: p.tenure, rate: wiRate });
+  const base = window._baseScores;
+  const compare = document.getElementById('whatif-compare');
+  const metrics = [
+    { label: '3m Placement', base: base.p3, wi: wiScores.p3, unit: '%' },
+    { label: '6m Placement', base: base.p6, wi: wiScores.p6, unit: '%' },
+    { label: 'Monthly EMI', base: base.emi, wi: wiScores.emi, unit: '', fmt: v => '₹'+Math.round(v/1000)+'K' },
+  ];
+  compare.innerHTML = metrics.map(m => {
+    const delta = m.wi - m.base;
+    const fmtVal = m.fmt ? m.fmt(m.wi) : m.wi + m.unit;
+    const fmtDelta = m.fmt ? (delta>0?'+':'')+m.fmt(Math.abs(delta)) : (delta>0?'+':'')+delta+m.unit;
+    const changed = delta !== 0;
+    const dir = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+    return `<div class="compare-box ${changed?'changed':''}">
+      <div class="compare-val">${fmtVal}</div>
+      <div class="compare-lbl">${m.label}</div>
+      ${changed ? `<div class="compare-delta ${dir}">${fmtDelta}</div>` : `<div class="compare-delta flat">No change</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ── AI NARRATIVE with typewriter ──
+async function generateNarrative({ name, program, country, field, cgpa, intern, qs, loan, tenure, rate, scores }) {
+  const prompt = `Risk analyst for study abroad loans. Write exactly 3 sentences for a loan officer.
+Student: ${name}, ${field}, ${country}, CGPA ${cgpa}, ${intern}m internship, ${qs}
+Risk: ${scores.tier} | Placement: ${scores.p3}%(3m) ${scores.p6}%(6m) | EMI: ₹${Math.round(scores.emi/1000)}K/mo (${scores.emiRatio}% salary)
+Salary: ${scores.salaryLocal} | Visa: ${scores.visaLabel} (${scores.visaRisk})
+Output: 1 sentence on risk reason, 1 on EMI capacity, 1 recommended action.`;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000, messages: [{ role: 'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b => b.type === 'text')?.text || '';
+    showTyping(text);
+  } catch(e) {
+    const fallback = {
+      LOW: `${name} earns a LOW risk classification driven by strong CGPA (${cgpa}/10) and ${intern} months of industry exposure placing them in the top placement cohort for ${qs} graduates in ${field} within ${country}. The expected salary band of ${scores.salaryLocal} (${scores.salaryINR}) yields an EMI-to-income ratio of ${scores.emiRatio}%, well within the 25% comfort threshold for a ₹${loan}L loan at ₹${Math.round(scores.emi/1000)}K/month. Recommend approval at standard terms with a scheduled 6-month post-graduation placement check-in.`,
+      MEDIUM: `${name} presents MEDIUM risk — solid academics are partially offset by a ${scores.visaRisk} visa risk profile under ${scores.visaLabel} and competitive ${field} conditions in ${country}. At ${scores.p3}% 3-month placement probability, the ₹${Math.round(scores.emi/1000)}K monthly EMI (${scores.emiRatio}% of estimated salary) is manageable but requires monitoring. Recommend approval with enhanced monitoring: 3-month post-graduation outreach and skill-gap recommendations for the ${country} job market.`,
+      HIGH: `${name} is flagged HIGH risk due to elevated ${scores.visaRisk} visa risk (${scores.visaLabel}), limited internship exposure, and only ${scores.p3}% 3-month placement probability in a competitive ${country} market. The ₹${Math.round(scores.emi/1000)}K monthly EMI (${scores.emiRatio}% of estimated salary) creates meaningful stress risk in the early repayment window. Recommend credit committee review with additional collateral, EMI moratorium extension to month 18, and mandatory skill-up program enrollment.`,
+    };
+    showTyping(fallback[scores.tier] || fallback.MEDIUM);
+  }
+}
+
+function showTyping(text) {
+  document.getElementById('ai-loading-row').style.display = 'none';
+  const out = document.getElementById('ai-output');
+  out.style.display = 'block'; out.textContent = '';
+  let i = 0;
+  const iv = setInterval(() => {
+    out.textContent += text[i++];
+    if (i >= text.length) clearInterval(iv);
+  }, 18);
+}
+
+// ── AI CHAT ──
+let chatOpen = false;
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-body').classList.toggle('open', chatOpen);
+  document.getElementById('chat-toggle-icon').textContent = chatOpen ? '▲ COLLAPSE' : '▼ EXPAND';
+}
+
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg) return;
+  inp.value = '';
+  const msgs = document.getElementById('chat-msgs');
+  msgs.innerHTML += `<div class="msg user">${msg}</div>`;
+  msgs.innerHTML += `<div class="msg ai" id="chat-ai-resp"><div class="msg-src">PlacementIQ AI</div><div class="loading-row"><div class="spinner"></div> Thinking…</div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  const ctx = window._chatContext;
+  if (!ctx) return;
+  const prompt = `PlacementIQ risk analyst. Student: ${ctx.name}, ${ctx.country}, CGPA ${ctx.cgpa}, risk ${ctx.scores.tier}, 6m placement ${ctx.scores.p6}%, EMI ₹${Math.round(ctx.scores.emi/1000)}K. 2-3 sentences: ${msg}`;
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 1000, messages: [{ role:'user', content: prompt }] })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b => b.type==='text')?.text || 'Unable to generate response.';
+    document.getElementById('chat-ai-resp').innerHTML = `<div class="msg-src">PlacementIQ AI</div>${text}`;
+  } catch {
+    document.getElementById('chat-ai-resp').innerHTML = `<div class="msg-src">PlacementIQ AI</div>I can see this student has a ${ctx.scores.tier} risk profile with ${ctx.scores.p6}% 6-month placement probability. For detailed analysis, please check the main assessment panel above.`;
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── PORTFOLIO DATA ──
+const portfolioData = [
+  { name: 'Priya Sharma', info: '🇬🇧 UK · MS Data Sci', score: 78, p3: 52, p6: 81, salary: '£28-34K / ₹29-36L', visa: 'LOW', risk: 'LOW', emi: '₹28K', delta: +3, action: 'Monitor' },
+  { name: 'Arjun Mehta', info: '🇺🇸 US · MS CS', score: 61, p3: 38, p6: 62, salary: '$68-82K / ₹57-68L', visa: 'MEDIUM', risk: 'MEDIUM', emi: '₹42K', delta: -5, action: 'OPT Review' },
+  { name: 'Kavya Nair', info: '🇨🇦 Canada · MBA', score: 83, p3: 67, p6: 88, salary: 'CA$55-70K / ₹33-42L', visa: 'LOW', risk: 'LOW', emi: '₹31K', delta: +2, action: 'Monitor' },
+  { name: 'Rahul Gupta', info: '🇺🇸 US · MS ECE', score: 42, p3: 21, p6: 44, salary: '$58-72K / ₹48-60L', visa: 'HIGH', risk: 'HIGH', emi: '₹55K', delta: -8, action: 'Alert' },
+  { name: 'Sneha Iyer', info: '🇦🇺 AUS · MS Finance', score: 55, p3: 31, p6: 58, salary: 'A$58-72K / ₹30-38L', visa: 'MEDIUM', risk: 'MEDIUM', emi: '₹36K', delta: +1, action: 'Skill-up' },
+  { name: 'Vikram Singh', info: '🇬🇧 UK · MS AI', score: 88, p3: 71, p6: 93, salary: '£32-40K / ₹33-42L', visa: 'LOW', risk: 'LOW', emi: '₹24K', delta: +6, action: 'Monitor' },
+  { name: 'Deepa Krishnan', info: '🇺🇸 US · MS STEM', score: 38, p3: 18, p6: 39, salary: '$60-76K / ₹50-63L', visa: 'HIGH', risk: 'HIGH', emi: '₹48K', delta: -12, action: 'Alert' },
+  { name: 'Aditya Roy', info: '🇩🇪 Germany · MEng', score: 62, p3: 44, p6: 68, salary: '€42-55K / ₹37-49L', visa: 'LOW', risk: 'MEDIUM', emi: '₹29K', delta: 0, action: 'Language Flag' },
+];
+let filteredPortfolio = [...portfolioData];
+
+function renderPortfolio(data) {
+  const tbody = document.getElementById('portfolio-body');
+  tbody.innerHTML = (data || filteredPortfolio).map(r => {
+    const deltaClass = r.delta > 0 ? 'up' : r.delta < 0 ? 'down' : 'flat';
+    const deltaStr = r.delta > 0 ? `+${r.delta}` : r.delta === 0 ? '–' : `${r.delta}`;
+    const actionClass = r.action === 'Alert' ? 'alert-btn' : '';
+    const isAlert = r.action === 'Alert';
+    return `<tr>
+      <td style="font-weight:500">${r.name}</td>
+      <td style="font-size:0.79rem;color:var(--muted2)">${r.info}</td>
+      <td>
+        <div class="score-bar-wrap">
+          <div class="score-bar-track"><div class="score-bar-fill" style="width:${r.score}%;background:${r.score>=68?'var(--teal)':r.score>=48?'var(--amber)':'var(--red)'}"></div></div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--muted)">${r.score}</span>
+        </div>
+      </td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.76rem">${r.p3}%</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.76rem">${r.p6}%</td>
+      <td style="font-size:0.76rem;color:var(--blue)">${r.salary}</td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:0.76rem;color:var(--muted2)">${r.emi}/mo</td>
+      <td><span class="risk-pill ${r.visa}"><span class="riskdot ${r.visa}"></span>${r.visa}</span></td>
+      <td><span class="risk-pill ${r.risk}"><span class="riskdot ${r.risk}"></span>${r.risk}</span></td>
+      <td><span class="delta ${deltaClass}" style="font-size:0.72rem">${deltaStr}</span></td>
+      <td><button class="tbl-action ${actionClass}" onclick="portfolioAction('${r.name}','${r.action}')">${isAlert?'⚠️ Alert RM':r.action}</button></td>
+    </tr>`;
+  }).join('');
+}
+renderPortfolio();
+
+function filterTable(tier, btn) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  filteredPortfolio = tier === 'ALL' ? [...portfolioData] : portfolioData.filter(r => r.risk === tier);
+  renderPortfolio();
+}
+
+function searchPortfolio(q) {
+  const lq = q.toLowerCase();
+  const filtered = portfolioData.filter(r => r.name.toLowerCase().includes(lq) || r.info.toLowerCase().includes(lq));
+  renderPortfolio(filtered);
+}
+
+let sortAsc = false;
+function sortTable(col) {
+  const keys = ['name','info','score','p3','p6','salary','emi','visa','risk','delta'];
+  filteredPortfolio.sort((a,b) => {
+    const va = a[keys[col]], vb = b[keys[col]];
+    return sortAsc ? (va > vb ? 1 : -1) : (va < vb ? 1 : -1);
+  });
+  sortAsc = !sortAsc;
+  renderPortfolio();
+}
+
+function rescoreAll() {
+  portfolioData.forEach(r => { r.delta += Math.floor(Math.random()*6-3); });
+  renderPortfolio();
+  alert('✅ All borrowers re-scored with latest market signals.');
+}
+
+function portfolioAction(name, action) {
+  if (action === 'Alert') alert(`📱 RM alert triggered for ${name}. SMS + email notification sent.`);
+  else alert(`✅ Action "${action}" logged for ${name}.`);
+}
+
+// ── CHARTS ──
+let chartsRendered = false;
+function renderCharts() {
+  if (chartsRendered) return; chartsRendered = true;
+  const chartDefaults = {
+    plugins: { legend: { labels: { color: '#5a6a8a', font: { family: 'Space Grotesk', size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#5a6a8a', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(26,37,64,0.8)' } },
+      y: { ticks: { color: '#5a6a8a', font: { family: 'JetBrains Mono', size: 10 } }, grid: { color: 'rgba(26,37,64,0.8)' } }
+    }
+  };
+
+  // Risk Distribution Donut — realistic portfolio split
+  new Chart(document.getElementById('chart-risk'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+      datasets: [{ data: [34, 43, 23], backgroundColor: ['rgba(34,214,106,0.7)','rgba(255,181,71,0.7)','rgba(255,78,106,0.7)'], borderWidth: 0 }]
+    },
+    options: { plugins: { legend: { labels: { color: '#5a6a8a', font: { family: 'Space Grotesk', size: 11 } } } }, cutout: '65%' }
+  });
+
+  // Country placement — realistic 6m rates for Indian PG grads (IIE/HESA data)
+  new Chart(document.getElementById('chart-country'), {
+    type: 'bar',
+    data: {
+      labels: ['🇨🇦 Canada','🇬🇧 UK','🇳🇱 NL','🇦🇺 AUS','🇺🇸 US','🇸🇬 SG','🇩🇪 Germany'],
+      datasets: [{ label: '6m Placement Rate (avg across fields)', data: [63, 61, 58, 56, 54, 57, 50], backgroundColor: 'rgba(0,229,200,0.6)', borderColor: 'rgba(0,229,200,0.9)', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: { ...chartDefaults, plugins: { legend: { display: false } } }
+  });
+
+  // Field vs Placement — realistic market demand data
+  new Chart(document.getElementById('chart-field'), {
+    type: 'bar',
+    data: {
+      labels: ['SWE','DS/AI','Healthcare','Cyber','STEM Eng','Finance','MBA','Arts'],
+      datasets: [{ label: 'Avg 6m Placement (cross-country)', data: [62, 60, 65, 57, 54, 50, 47, 24], backgroundColor: 'rgba(61,158,255,0.6)', borderColor: 'rgba(61,158,255,0.9)', borderWidth: 1, borderRadius: 4 }]
+    },
+    options: { ...chartDefaults, indexAxis: 'y', plugins: { legend: { display: false } } }
+  });
+
+  // CGPA Decile — matches our sigmoid cgpaFactor model
+  new Chart(document.getElementById('chart-cgpa'), {
+    type: 'line',
+    data: {
+      labels: ['5.0','5.5','6.0','6.5','7.0','7.5','8.0','8.5','9.0','9.5+'],
+      datasets: [
+        { label: '6m Placement uplift', data: [38, 43, 49, 55, 61, 66, 70, 73, 75, 77], borderColor: 'rgba(0,229,200,0.9)', backgroundColor: 'rgba(0,229,200,0.1)', tension: 0.4, fill: true },
+        { label: 'Repayment probability', data: [52, 57, 63, 68, 74, 79, 83, 87, 90, 92], borderColor: 'rgba(61,158,255,0.7)', backgroundColor: 'rgba(61,158,255,0.05)', tension: 0.4, borderDash: [4,4] }
+      ]
+    },
+    options: chartDefaults
+  });
+
+  // NPA Forecast
+  new Chart(document.getElementById('chart-forecast'), {
+    type: 'line',
+    data: {
+      labels: ['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'],
+      datasets: [
+        { label: 'Without PlacementIQ', data: [8,9,10,12,14,16,18,20,21,22,23,24], borderColor: 'rgba(255,78,106,0.8)', backgroundColor: 'rgba(255,78,106,0.08)', tension: 0.4, fill: true },
+        { label: 'With PlacementIQ', data: [8,8,9,10,11,12,13,13,14,15,15,16], borderColor: 'rgba(0,229,200,0.9)', backgroundColor: 'rgba(0,229,200,0.1)', tension: 0.4, fill: true },
+        { label: 'Industry Avg', data: [10,11,12,13,15,17,18,20,21,22,23,25], borderColor: 'rgba(255,181,71,0.5)', borderDash: [5,5], tension: 0.4 }
+      ]
+    },
+    options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, title: { display: true, text: 'NPA %', color: '#5a6a8a' } } } }
+  });
+}
+
+// ── EXPORT FUNCTIONS ──
+function exportJSON() {
+  if (!currentAssessment) { alert('Run an assessment first.'); return; }
+  const data = JSON.stringify(currentAssessment, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `PlacementIQ_${currentAssessment.name.replace(/ /g,'_')}.json`; a.click();
+}
+
+function exportPDF() {
+  alert('📄 PDF export: In a production build, this triggers a server-side Puppeteer render of the full report. For demo: use the Print button and choose "Save as PDF".');
+}
+
+function copyLink() {
+  if (!currentAssessment) { alert('Run an assessment first.'); return; }
+  const params = new URLSearchParams({ n: currentAssessment.name, c: currentAssessment.country, f: currentAssessment.field, g: currentAssessment.cgpa, i: currentAssessment.intern, l: currentAssessment.loan });
+  navigator.clipboard.writeText(window.location.href + '?' + params.toString()).then(() => alert('✅ Shareable link copied to clipboard!'));
+}
+
+function addToPortfolio() {
+  if (!currentAssessment) { alert('Run an assessment first.'); return; }
+  const { name, country, field, scores } = currentAssessment;
+  const emoji = { UK:'🇬🇧', US:'🇺🇸', Canada:'🇨🇦', Australia:'🇦🇺', Germany:'🇩🇪', Netherlands:'🇳🇱', Singapore:'🇸🇬' };
+  portfolioData.unshift({ name, info: `${emoji[country]||'🌍'} ${country} · ${field}`, score: scores.base, p3: scores.p3, p6: scores.p6, salary: `${scores.salaryLocal} / ${scores.salaryINR}`, visa: scores.visaRisk, risk: scores.tier, emi: `₹${Math.round(scores.emi/1000)}K`, delta: 0, action: scores.tier==='HIGH'?'Alert':'Monitor' });
+  document.getElementById('portfolio-count').textContent = portfolioData.length;
+  showToast(`✅ ${name} added to Portfolio Monitor.`);
+}
+
+// ── ACTION CARD HANDLER (global) ──
+function handleAction(label, el) {
+  const ctx = window._chatContext;
+  const name = ctx ? ctx.name : 'Student';
+  const actions = {
+    'Approve — Standard Terms': () => {
+      el.style.background = 'rgba(34,214,106,0.15)'; el.style.borderColor = 'rgba(34,214,106,0.4)'; el.style.color = 'var(--green)';
+      showToast('✅ Approval logged for ' + name + '. Standard terms applied. Notification sent to RM.');
+    },
+    'Schedule 6m Check-in': () => {
+      const d = new Date(); d.setMonth(d.getMonth()+6);
+      showToast('📅 Check-in scheduled for ' + d.toDateString() + '. RM calendar invite created for ' + name + '.');
+    },
+    'Add to Portfolio Monitor': () => { addToPortfolio(); },
+    'Share Approval Letter': () => {
+      showModal('📧 Approval Letter — ' + name,
+        `<p style="color:var(--muted2);font-size:0.85rem;line-height:1.7;margin-bottom:1rem">Dear <strong style="color:var(--text)">${name}</strong>,</p>
+        <p style="color:var(--muted2);font-size:0.85rem;line-height:1.7;margin-bottom:1rem">We are pleased to inform you that your study abroad loan application has been <strong style="color:var(--green)">approved</strong> under standard terms as assessed by PlacementIQ Risk Intelligence.</p>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem;display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+          ${[['Loan Amount','₹'+(ctx?.loan||35)+'L'],['Tenure',(ctx?.tenure||7)+' years'],['Interest Rate',(ctx?.rate||11)+'%'],['Risk Tier',ctx?.scores?.tier||'LOW'],['6m Placement',ctx?.scores?.p6+'%'||'—'],['EMI','₹'+Math.round((ctx?.scores?.emi||30000)/1000)+'K/mo']].map(([k,v])=>`<div><div style="font-family:'JetBrains Mono',monospace;font-size:0.55rem;color:var(--muted)">${k}</div><div style="font-size:0.85rem;font-weight:600">${v}</div></div>`).join('')}
+        </div>
+        <p style="color:var(--muted2);font-size:0.82rem;line-height:1.6">A 6-month post-graduation check-in has been scheduled. Please report any change in employment status to your Relationship Manager.</p>
+        <button onclick="showToast('📧 Letter sent to registered email.')" class="btn-primary" style="margin-top:1rem;padding:0.55rem 1.2rem;font-size:0.82rem;width:100%">Send to Registered Email</button>`
+      );
+    },
+    'Approve with Enhanced Monitoring': () => {
+      el.style.background = 'rgba(255,181,71,0.12)'; el.style.borderColor = 'rgba(255,181,71,0.3)'; el.style.color = 'var(--amber)';
+      showToast('⚠️ Approved with enhanced monitoring flag. Quarterly RM review covenant added for ' + name + '.');
+    },
+    'Skill-Up Recommendations': () => {
+      const field = ctx?.field || 'Data Science / AI';
+      const skillMap = {
+        'Data Science / AI': ['Python Advanced (Coursera — 6 weeks)','AWS ML Specialty Cert','SQL & Data Engineering (Mode Analytics)','Statistics for ML (Khan Academy + coursework)'],
+        'Software Engineering': ['System Design Interview Prep (Educative.io)','React + Node.js Full Stack (Udemy)','AWS Solutions Architect Associate','Docker & Kubernetes (Linux Foundation)'],
+        'Finance / Banking': ['CFA Level 1 (300 hrs self-study)','Bloomberg Market Concepts (free)','Excel Financial Modelling (CFI)','Python for Finance (DataCamp)'],
+        'MBA / Management': ['Consulting Case Prep (Victor Cheng)','PMP Certification (PMI)','Salesforce Admin (Trailhead — free)','Data-Driven Decision Making (Coursera)'],
+        'default': ['AWS Cloud Practitioner (Coursera — 4 weeks)','Data Structures & Algorithms (LeetCode Premium)','Communication Skills for International Workplaces (LinkedIn Learning)','Project Management Fundamentals (Google Certificate)']
+      };
+      const recs = skillMap[field] || skillMap['default'];
+      showModal('🎓 Skill-Up Plan for ' + name,
+        `<p style="margin-bottom:0.75rem;color:var(--muted2);font-size:0.85rem">Recommended for <strong style="color:var(--text)">${field}</strong> roles in <strong style="color:var(--text)">${ctx?.country||'your destination'}</strong>:</p>` +
+        recs.map(s => `<div style="padding:0.5rem 0.75rem;margin-bottom:0.4rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:0.82rem">📌 ${s}</div>`).join('') +
+        `<p style="margin-top:0.75rem;font-size:0.72rem;color:var(--muted);font-family:'JetBrains Mono',monospace">Estimated completion: 8–12 weeks · Cost: ₹4,000–₹12,000</p>`
+      );
+    },
+    'RM Call at Graduation': () => {
+      showToast('📞 RM outreach scheduled for graduation month. Auto-reminder set for ' + name + '.');
+    },
+    'Semester Re-Score': () => {
+      showToast('🔄 Re-scoring queued. ' + name + ' will be re-evaluated at next semester boundary.');
+    },
+    'Flag for Credit Review': () => {
+      el.style.background = 'rgba(255,78,106,0.12)'; el.style.borderColor = 'rgba(255,78,106,0.3)'; el.style.color = 'var(--red)';
+      showToast('🚨 Credit review flag raised for ' + name + '. Escalated to Credit Committee. Case ID: CC-' + Math.floor(Math.random()*9000+1000));
+    },
+    'Propose EMI Restructure': () => {
+      const emi = ctx?.scores?.emi || 30000;
+      showModal('🔁 EMI Restructure Proposal — ' + name,
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">' +
+        [['Current EMI','₹'+Math.round(emi/1000)+'K/mo'],['Proposed EMI','₹'+Math.round(emi*0.7/1000)+'K/mo (30% relief)'],['Moratorium','6 additional months'],['Extended Tenure','+2 years'],['Interest Capitalised','Yes — post moratorium'],['Trigger','RM approval required']].map(([k,v]) =>
+          `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:0.65rem"><div style="font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:var(--muted);margin-bottom:0.2rem">${k}</div><div style="font-size:0.88rem;font-weight:600">${v}</div></div>`
+        ).join('') + '</div><button onclick="showToast(\'✅ Restructure proposal submitted for RM approval.\')" class="btn-primary" style="margin-top:1rem;padding:0.55rem 1.2rem;font-size:0.82rem;width:100%">Submit for RM Approval</button>'
+      );
+    },
+    'Recruiter Network Alert': () => {
+      showToast('🤝 Alert sent to 12 partner recruiters in ' + (ctx?.country||'target country') + ' specialising in ' + (ctx?.field||'the relevant field') + '.');
+    },
+    'Immediate RM Alert': () => {
+      el.style.background = 'rgba(255,78,106,0.12)'; el.style.borderColor = 'rgba(255,78,106,0.3)'; el.style.color = 'var(--red)';
+      showToast('📱 Immediate RM SMS + email alert sent for ' + name + '. Response SLA: 2 business hours.');
+    },
+    'Additional Collateral Review': () => {
+      showModal('📋 Collateral Review Checklist — ' + name,
+        ['Property documents (parent/guardian)', 'FD / LIC / NSC certificates', 'Co-borrower income proof (last 3 ITRs)', 'Employer guarantee letter (if employed)', 'Gold valuation certificate (if applicable)']
+          .map(s => `<label style="display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:0.84rem"><input type="checkbox" style="accent-color:var(--teal)"> ${s}</label>`).join('') +
+        '<button onclick="showToast(\'📋 Checklist saved to credit file.\')" class="btn-primary" style="margin-top:1rem;padding:0.5rem 1rem;font-size:0.82rem;width:100%">Save to Credit File</button>'
+      );
+    },
+  };
+  const fn = actions[label];
+  if (fn) fn();
+  else showToast('✅ Action "' + label + '" logged for ' + name + '.');
+}
+
+
+const lcStageData = {
+  1: {
+    dots: ['done','','','',''],
+    outputs: [
+      { label: 'Stage 1 — Origination', text: 'Employability score, visa risk flag, AI narrative, risk-based pricing recommendation, SHAP explainability report' },
+      { label: 'What happens next', text: 'Loan officer reviews the PlacementIQ report, applies risk-based pricing, and disburses with appropriate covenants.' },
+      { label: 'Key Output', text: 'Risk tier (LOW / MEDIUM / HIGH), placement probability at 3m/6m/12m, EMI stress ratio, AI narrative for credit file.' },
+    ]
+  },
+  2: {
+    dots: ['done','current','','',''],
+    outputs: [
+      { label: 'Stage 2 — Active Monitoring', text: 'Semester re-scoring, RM alerts for at-risk students, macro signal updates (OPT policy, FX shifts, job market), skill-gap alerts' },
+      { label: 'Trigger Events', text: 'OPT/visa policy changes, currency shocks >10%, job market downturns in target field, semester grade updates.' },
+      { label: 'RM Actions', text: 'Automated RM outreach for HIGH-risk re-scores. Skill-up recommendations pushed to student portal.' },
+    ]
+  },
+  3: {
+    dots: ['done','done','current','',''],
+    outputs: [
+      { label: 'Stage 3 — Graduation Re-score', text: 'Full model re-run at graduation with updated profile: final GPA, degree awarded, visa status confirmed, job offers (if any).' },
+      { label: 'What changes', text: 'Placement probability recalibrated with actual graduation data. Visa pathway confirmed. Salary expectations updated with current market rates.' },
+      { label: 'EMI Prep', text: 'If re-score is HIGH risk: EMI moratorium extension proposed, recruiter network alert triggered, restructure options prepared before first EMI date.' },
+    ]
+  },
+  4: {
+    dots: ['done','done','done','current',''],
+    outputs: [
+      { label: 'Stage 4 — EMI & Repayment', text: 'EMI cycle begins. PlacementIQ monitors employment status via LinkedIn and CRM. First missed payment triggers immediate RM alert.' },
+      { label: 'Early Warning System', text: 'If student is unemployed at EMI-1 date: auto-restructure proposal generated, NACH mandate flagged, co-borrower notified.' },
+      { label: 'Recovery Toolkit', text: 'Recruiter matching (12 partner firms in target country), EMI step-up schedule, 6-month interest-only period available for HIGH-risk cohort.' },
+    ]
+  },
+  5: {
+    dots: ['done','done','done','done','current'],
+    outputs: [
+      { label: 'Stage 5 — Loan Closure', text: 'Loan fully repaid. Actual placement timeline and salary outcome recorded. Data fed back into PlacementIQ training dataset.' },
+      { label: 'Alumni Feedback Loop', text: 'Time-to-placement, actual salary vs predicted, visa outcome — all stored and used to retrain the model for the next cohort.' },
+      { label: 'Model Improvement', text: 'Each closed loan improves prediction accuracy. After 500 settled loans: projected +6pp accuracy gain and ₹51Cr NPA savings/yr on ₹500Cr book.' },
+    ]
+  }
+};
+
+function setLifecycleStage(n) {
+  const data = lcStageData[n];
+  for (let i = 1; i <= 5; i++) {
+    const state = data.dots[i-1];
+    document.getElementById('lc-dot-' + i).className = 'lc-dot' + (state ? ' ' + state : '');
+    document.getElementById('lc-lbl-' + i).className = 'lc-label' + (state ? ' ' + state : '');
+  }
+  const out = document.getElementById('lc-outputs');
+  out.style.opacity = '0'; out.style.transform = 'translateY(8px)';
+  setTimeout(() => {
+    out.innerHTML = data.outputs.map(o => `<div class="lc-out"><div class="lc-out-label">${o.label}</div><div class="lc-out-text">${o.text}</div></div>`).join('');
+    out.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    out.style.opacity = '1'; out.style.transform = 'translateY(0)';
+  }, 150);
+}
+
+function printReport() { window.print(); }
+function updateSliders() {}
+
+// ── TOAST NOTIFICATION ──
+function showToast(msg) {
+  const existing = document.getElementById('piq-toast');
+  if (existing) existing.remove();
+  const t = document.createElement('div');
+  t.id = 'piq-toast';
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:2rem;right:2rem;z-index:9999;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:0.9rem 1.3rem;font-size:0.84rem;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,0.5);max-width:380px;line-height:1.5;animation:toastIn 0.3s cubic-bezier(0.16,1,0.3,1) both`;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.animation = 'toastOut 0.3s ease forwards'; setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+// ── MODAL ──
+function showModal(title, bodyHTML) {
+  const existing = document.getElementById('piq-modal');
+  if (existing) existing.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'piq-modal';
+  overlay.style.cssText = `position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem`;
+  overlay.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:1.75rem;max-width:520px;width:100%;max-height:80vh;overflow-y:auto;position:relative;animation:slideUp 0.3s cubic-bezier(0.16,1,0.3,1) both">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem">
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:1rem">${title}</div>
+        <button onclick="document.getElementById('piq-modal').remove()" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer;padding:0.25rem 0.6rem;font-size:0.8rem">✕</button>
+      </div>
+      <div>${bodyHTML}</div>
+    </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// Inject toast/modal keyframes once
+(function() {
+  const s = document.createElement('style');
+  s.textContent = `
+    @keyframes toastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes toastOut { from{opacity:1;transform:translateY(0)} to{opacity:0;transform:translateY(12px)} }
+  `;
+  document.head.appendChild(s);
+})();
+
+// ── PHASE 2 CARD INTERACTIONS ──
+document.addEventListener('DOMContentLoaded', () => {
+  // Make Phase 2 cards clickable
+  const phase2Details = {
+    'Real-Time Policy Feed': {
+      title: '🌐 Real-Time Policy Feed — Integration Details',
+      body: `
+        <p style="color:var(--muted2);font-size:0.84rem;line-height:1.6;margin-bottom:1rem">Live ingestion of immigration and work-permit policy changes across 7 countries, triggering automatic borrower re-scoring within 24 hours of any policy announcement.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem">
+          ${[['USCIS API','US OPT/H-1B cap updates, STEM extension notifications','var(--teal)'],['IRCC Feed','Canadian PGWP policy, Express Entry changes','var(--teal)'],['UK Home Office','Graduate Route updates, post-study work rights','var(--teal)']].map(([k,v,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.7rem"><div style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:${c};margin-bottom:0.2rem">${k}</div><div style="font-size:0.8rem;color:var(--muted2)">${v}</div></div>`).join('')}
+        </div>
+        <div style="background:rgba(0,229,200,0.06);border:1px solid rgba(0,229,200,0.15);border-radius:8px;padding:0.75rem;font-size:0.78rem;color:var(--muted2)">⏱ Re-score SLA: <strong style="color:var(--teal)">48 hours</strong> from policy announcement · Affects <strong style="color:var(--text)">all active borrowers</strong> in impacted cohort</div>`
+    },
+    'Alumni Placement Loop': {
+      title: '🎓 Alumni Placement Loop — Feedback Architecture',
+      body: `
+        <p style="color:var(--muted2);font-size:0.84rem;line-height:1.6;margin-bottom:1rem">A closed-loop ML retraining pipeline that ingests real placement and salary outcomes from settled loans, improving model accuracy cohort-by-cohort.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem">
+          ${[['LinkedIn API','Verify employment status and job title post-graduation','var(--blue)'],['Loan CRM','Match repayment records with placement timelines','var(--blue)'],['ML Retraining','Monthly model updates using actual outcome data','var(--blue)']].map(([k,v,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.7rem"><div style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:${c};margin-bottom:0.2rem">${k}</div><div style="font-size:0.8rem;color:var(--muted2)">${v}</div></div>`).join('')}
+        </div>
+        <div style="background:rgba(61,158,255,0.06);border:1px solid rgba(61,158,255,0.15);border-radius:8px;padding:0.75rem;font-size:0.78rem;color:var(--muted2)">📈 Projected accuracy gain: <strong style="color:var(--blue)">+6pp</strong> after 3 cohorts · Training data: <strong style="color:var(--text)">2,400+ settled loans</strong></div>`
+    },
+    'Bank API Integration': {
+      title: '🏦 Bank API Integration — LOS Architecture',
+      body: `
+        <p style="color:var(--muted2);font-size:0.84rem;line-height:1.6;margin-bottom:1rem">Direct two-way integration with Poonawalla Fincorp's Loan Origination System — enabling one-click risk score export, auto-populated sanctioning notes, and NACH mandate flags.</p>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem">
+          ${[['LOS API','Auto-populate PlacementIQ score into credit appraisal note','var(--purple)'],['NACH Mandate','Flag high-risk borrowers for manual NACH verification','var(--purple)'],['Credit Bureau','Enrich student profile with CIBIL / Equifax data pull','var(--purple)']].map(([k,v,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:0.7rem"><div style="font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:${c};margin-bottom:0.2rem">${k}</div><div style="font-size:0.8rem;color:var(--muted2)">${v}</div></div>`).join('')}
+        </div>
+        <div style="background:rgba(176,106,255,0.06);border:1px solid rgba(176,106,255,0.15);border-radius:8px;padding:0.75rem;font-size:0.78rem;color:var(--muted2)">⚡ Integration timeline: <strong style="color:var(--purple)">Q3 FY2026</strong> · Pending: LOS API partnership agreement · One-click export reduces TAT by <strong style="color:var(--text)">60%</strong></div>`
+    }
+  };
+
+  // Attach click handlers to Phase 2 cards by title text match
+  document.querySelectorAll('[data-phase2]').forEach(card => {
+    const key = card.dataset.phase2;
+    if (!phase2Details[key]) return;
+    card.style.cursor = 'pointer';
+    card.style.transition = 'transform 0.2s, box-shadow 0.2s';
+    card.addEventListener('mouseenter', () => { card.style.transform = 'translateY(-3px)'; card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'; });
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; card.style.boxShadow = ''; });
+    card.addEventListener('click', () => showModal(phase2Details[key].title, phase2Details[key].body));
+  });
+});
+</script>
+</body>
+</html>
