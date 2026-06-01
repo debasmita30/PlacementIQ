@@ -1553,36 +1553,58 @@ function runTrajectory(){
   const s=ST.student,sc=ST.scores;
   if(!sc)return;
   const loan=s.loan*1e5,runs=5000,months=60;
-  const annualRate=(s.rate||11.5)/100;
   const emi=calcEMI(loan,s.rate||11.5,(s.tenure||7)*12);
   const fxRate=ST.fx[CM[s.country]?.cur||'USD']||84;
   const expSalMonthly=sc.expSal*fxRate/12;
-  const ep=Math.max(0.15,sc.p6/100);
-  const coBorrowerIncome=(s.loan*100000)*(0.004);
-  const jobBase={US:4,UK:4.5,CA:5,AU:5,DE:5.5,NL:5,SG:4}[s.country]||5;
-  const visaRiskFactor={UK:0.05,US:0.18,CA:0.12,AU:0.08,DE:0.10,NL:0.09,SG:0.06}[s.country]||0.10;
+  const ep=Math.max(0.20,sc.p6/100);
+
+  // MORATORIUM MODEL: EMI does not start for study_period + moratorium_months
+  // Study period: 1yr course=12m, 2yr course=18-24m (most PG is 1-2yr)
+  // RBI moratorium: course + 12 months
+  // We model: EMI only starts from month (study_period + moratorium)
+  // Typical: 12m study + 12m moratorium = month 24 EMI start
+  const studyMonths=18; // 1.5yr average PG course
+  const moratoriumMonths=12; // RBI mandated
+  const emiStartMonth=studyMonths+moratoriumMonths; // month 30
+
+  // Job search starts AFTER graduation (after studyMonths)
+  // e.g. UK typically finds job in 4-5 months after graduation
+  const jobSearchBase={US:4,UK:4,CA:5,AU:5,DE:6,NL:5,SG:4}[s.country]||5;
+  const visaRisk={UK:0.04,US:0.16,CA:0.10,AU:0.07,DE:0.09,NL:0.08,SG:0.05}[s.country]||0.08;
+
+  // Co-borrower income: use a realistic figure (not loan-based)
+  // Typical Indian family co-borrower: ₹40,000-80,000/month
+  // We scale by loan size as a proxy for family income
+  const coIncome=Math.min(65000,Math.max(35000,s.loan*1200)); // realistic ₹35K-65K/month
+
   const defs=new Array(months).fill(0);
   for(let r=0;r<runs;r++){
-    const jobDelay=Math.max(1,Math.round(jobBase+(Math.random()+Math.random()+Math.random()-1.5)*2.5));
-    const visaFail=Math.random()<visaRiskFactor;
-    const actualJobDelay=visaFail?jobDelay+Math.floor(Math.random()*8+4):jobDelay;
-    let def=false;
-    let misses=0;
+    // Job found X months AFTER graduation (after studyMonths)
+    const jSearchDelay=Math.max(1,Math.round(jobSearchBase+(Math.random()+Math.random()-1)*3));
+    const visaFailed=Math.random()<visaRisk;
+    // Visa failure adds 6-18 months to job finding
+    const extraDelay=visaFailed?Math.floor(Math.random()*12+6):0;
+    const jobFoundAtMonth=studyMonths+jSearchDelay+extraDelay;
+
+    let def=false,misses=0;
     for(let m=0;m<months;m++){
       if(def){for(let mm=m;mm<months;mm++)defs[mm]++;break;}
-      const employed=m>=actualJobDelay;
-      const fxShock=1+(Math.random()*2-1)*0.10;
-      const salaryVariance=0.75+Math.random()*0.50;
-      const monthlyIncome=employed?(expSalMonthly*salaryVariance*ep/fxShock):(coBorrowerIncome*(0.8+Math.random()*0.4));
-      const emiRatio=emi/Math.max(monthlyIncome,1);
-      if(emiRatio>0.55) misses++;
-      else if(misses>0) misses=Math.max(0,misses-1);
+      // Before EMI start month: no payment required, no default possible
+      if(m<emiStartMonth){continue;}
+      const employed=m>=jobFoundAtMonth;
+      const fxShock=1+(Math.random()*2-1)*0.09;
+      const salVar=0.80+Math.random()*0.45;
+      // Income: if employed use salary, else co-borrower income
+      const income=employed?(expSalMonthly*salVar*ep/fxShock):(coIncome*(0.85+Math.random()*0.3));
+      const ratio=emi/Math.max(income,1);
+      if(ratio>0.45)misses++;
+      else if(misses>0)misses=Math.max(0,misses-1);
       if(misses>=3)def=true;
     }
   }
   const results=defs.map((d,i)=>({month:i+1,base:parseFloat((d/runs*100).toFixed(1)),intv:null}));
   const pi=results.reduce((mi,r,i)=>r.base>results[mi].base?i:mi,0);
-  const peakProb=Math.max(results[pi].base,0.1);
+  const peakProb=Math.max(results[pi].base,0.3);
   ST.trajectory={results,peakMonth:pi+1,peakProb};
   $('traj-ph').style.display='none';
   V('bp-month','M'+(pi+1));
@@ -1640,21 +1662,35 @@ function runIntervention(){
   const s=ST.student,im=parseInt($('intv-m').value)||10,ia=parseInt($('intv-a').value)||2000;
   const loan=s.loan*1e5,sc=ST.scores,runs=3000,months=60;
   const emi=calcEMI(loan,s.rate||11.5,(s.tenure||7)*12);
-  const ep=sc.p6/100,expM=sc.expSal*(ST.fx[CM[s.country].cur]||84)/12;
-  const jobBase={US:3.5,UK:4,CA:5,AU:5,DE:5,NL:5,SG:4}[s.country]||5;
+  const ep=Math.max(0.20,sc.p6/100);
+  const expM=sc.expSal*(ST.fx[CM[s.country]?.cur||'USD']||84)/12;
+  const studyMonths=18,moratoriumMonths=12,emiStartMonth=studyMonths+moratoriumMonths;
+  const jobSearchBase={US:4,UK:4,CA:5,AU:5,DE:6,NL:5,SG:4}[s.country]||5;
+  const visaRisk={UK:0.04,US:0.16,CA:0.10,AU:0.07,DE:0.09,NL:0.08,SG:0.05}[s.country]||0.08;
+  const coIncome=Math.min(65000,Math.max(35000,s.loan*1200));
   const defs=new Array(months).fill(0);
   for(let r=0;r<runs;r++){
-    const jm=Math.max(1,Math.round(jobBase+(Math.random()+Math.random()-1)*3));
-    let def=false;
+    const jd=Math.max(1,Math.round(jobSearchBase+(Math.random()+Math.random()-1)*3));
+    const vf=Math.random()<visaRisk;
+    const jobFoundAt=studyMonths+jd+(vf?Math.floor(Math.random()*12+6):0);
+    let def=false,misses=0;
     for(let m=0;m<months;m++){
       if(def){for(let mm=m;mm<months;mm++)defs[mm]++;break;}
-      const fx=1+(Math.random()*2-1)*.08,extra=m>=im?ia/12:0;
-      const inc=m>=jm?(expM*(0.82+Math.random()*.36)*ep/fx):(sc.expINR/12*.85+extra);
-      const eEmi=m>=im?emi*.95:emi;
-      if(eEmi/Math.max(inc,1)>.52)def=true;
+      if(m<emiStartMonth)continue;
+      const employed=m>=jobFoundAt;
+      const fxShock=1+(Math.random()*2-1)*0.09;
+      const salVar=0.80+Math.random()*0.45;
+      const baseIncome=employed?(expM*salVar*ep/fxShock):(coIncome*(0.85+Math.random()*0.3));
+      const intvBoost=m>=im?ia:0;
+      const income=baseIncome+(intvBoost/12);
+      const eEmi=m>=im?emi*0.93:emi;
+      const ratio=eEmi/Math.max(income,1);
+      if(ratio>0.45)misses++;
+      else if(misses>0)misses=Math.max(0,misses-1);
+      if(misses>=3)def=true;
     }
   }
-  const intvR=defs.map(d=>Math.round(d/runs*1000)/10);
+  const intvR=defs.map(d=>parseFloat((d/runs*100).toFixed(1)));
   ST.trajectory.results.forEach((r,i)=>{r.intv=intvR[i];});
   const newPeak=Math.max(...intvR),reduction=ST.trajectory.peakProb-newPeak;
   const cost=ia*(months-im),savings=(reduction/100)*loan;
