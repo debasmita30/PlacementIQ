@@ -854,6 +854,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 <button class="btn btn-sm btn-blue" id="rescore-btn" onclick="rescoreAll()">Re-score All</button>
       </div>
     </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding:8px 13px;background:var(--blue-bg2);border:1px solid rgba(27,82,200,.15);border-radius:8px;font-size:12px;color:var(--t2)">
+      <span>News Impact column shows risk score adjustments from live news.</span>
+      <span id="news-col-status" style="color:var(--t3)">Go to Intelligence tab → Fetch Live Intelligence → Apply to Portfolio to populate.</span>
+    </div>
     <div class="ptw"><table class="ptbl"><thead>
       <tr><th>Student</th><th>Country · Program</th><th>Score</th><th>Trend</th><th>3m</th><th>6m</th><th>Salary Band</th><th>EMI Status</th><th>News Impact</th><th>Risk Tier</th><th>Δ</th><th>Action</th></tr>
     </thead><tbody id="port-tbody"></tbody></table></div>
@@ -1017,10 +1021,10 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 
   <div class="intv-panel">
     <div class="ct" style="margin-bottom:8px"><div class="ct-dot g"></div>Intervention Simulator</div>
-    <div style="font-size:12px;color:var(--t3)">Model the effect of a targeted financial support intervention before the peak stress month.</div>
+    <div style="font-size:12px;color:var(--t3)">Simulate a financial support package before the peak stress month. Try ₹15,000/month — representing an EMI waiver, career coaching, or recruiter referral.</div>
     <div class="intv-row">
       <div class="intv-fld"><div class="intv-lbl">Intervention Month</div><input class="intv-inp" id="intv-m" type="number" min="1" max="30" value="10"></div>
-      <div class="intv-fld"><div class="intv-lbl">Monthly Support (₹)</div><input class="intv-inp" id="intv-a" type="number" min="500" step="500" value="2000"></div>
+      <div class="intv-fld"><div class="intv-lbl">Monthly Support (₹)</div><input class="intv-inp" id="intv-a" type="number" min="500" step="500" value="15000"></div>
 <button class="btn btn-green" onclick="runIntervention()">Simulate Intervention</button>
     </div>
     <div class="roi-banner" id="roi-banner"></div>
@@ -1768,7 +1772,8 @@ function runIntervention(){
       const baseIncome=employed?(expM*salVar/fxShock):(coIncome*(0.85+Math.random()*0.25));
       const intvBoost=m>=im?ia:0;
       const income=baseIncome+(intvBoost/12);
-      const eEmi=m>=im?emi*0.93:emi;
+      const supportRatio=Math.min(0.40,intvBoost/(12*emi)); // support as fraction of monthly EMI
+      const eEmi=m>=im?emi*(1-supportRatio*0.85):emi; // EMI effectively reduced proportionally
       const ratio=eEmi/Math.max(income,1);
       if(ratio>0.48)misses++;
       else if(misses>0)misses=Math.max(0,misses-1);
@@ -2049,6 +2054,10 @@ Return ONLY valid JSON. Use null for any field not found. Extract:
 // ═══════════════════════════════════════════════════════════
 let portFilter='all';
 function filterPort(f){portFilter=f;buildPortfolio();}
+function switchToIntel(){
+  document.querySelectorAll('.tb').forEach(b=>{b.classList.toggle('on',b.dataset.tab==='intelligence');});
+  document.querySelectorAll('.panel').forEach(p=>{p.classList.toggle('on',p.id==='panel-intelligence');});
+}
 
 function buildPortfolio(){
   const data=portFilter==='all'?ST.portfolio:ST.portfolio.filter(p=>{const sc=scoreStudent({country:p.coun,field:p.field,qs:p.qs,cgpa:p.cgpa,internship:p.int,loan:p.loan,tenure:p.ten,rate:p.rate,skills:p.skills});return sc.tier===portFilter;});
@@ -2060,7 +2069,17 @@ function buildPortfolio(){
     const sp=p.hist.map((v,i)=>{const mn=Math.min(...p.hist)-5,mx=Math.max(...p.hist)+5,h=Math.max(3,Math.round((v-mn)/(mx-mn)*12));return`<div class="sp" style="height:${h}px;background:${i===p.hist.length-1?tc:'var(--border2)'};"></div>`;}).join('');
     const emiL={['on-track']:'On Track','at-risk':'At Risk',miss1:'1 Miss'}[p.emi]||p.emi;
     const emiC={['on-track']:'g','at-risk':'a','miss1':'r'}[p.emi]||'a';
-    const newsAdj=sc.newsAdj||0,newsB=newsAdj!==0?`<span class="badge ${newsAdj<0?'g':'r'}">${newsAdj>0?'+':''}${newsAdj}</span>`:'<span style="color:var(--t4);font-size:10px">—</span>';
+    const newsAdj=sc.newsAdj||0;
+    let newsB;
+    if(!ST.newsAdj){
+      newsB='<button onclick="switchToIntel()" style="font-size:10px;color:var(--blue);cursor:pointer;border:none;background:none;text-decoration:underline;padding:0">Fetch News</button>';
+    } else if(newsAdj===0){
+      newsB='<span style="font-size:10px;color:var(--t4)">Neutral</span>';
+    } else {
+      const sign=newsAdj>0?'+':'';
+      const cls=newsAdj<0?'g':'r';
+      newsB='<span class="badge '+cls+'">'+sign+newsAdj+' pts</span>';
+    }
     const dStr=delta===0?'<span style="color:var(--t4)">—</span>':delta>0?`<span style="color:var(--red);font-family:var(--mono)">+${delta}</span>`:`<span style="color:var(--green);font-family:var(--mono)">${delta}</span>`;
  return`<tr class="${tier[0]}r"><td><strong>${p.name}</strong><br><small style="color:var(--t3)">${p.univ}</small></td><td>${CM[p.coun].flag} ${p.coun} · ${p.prog}</td><td><span style="font-family:var(--mono);font-weight:700;color:${tc}">${sc.rs}</span></td><td><div class="spar">${sp}</div></td><td style="font-family:var(--mono)">${sc.p3}%</td><td style="font-family:var(--mono)">${sc.p6}%</td><td style="font-size:11px;font-family:var(--mono)">${CM[p.coun].cur} ${(sc.expSal/1000).toFixed(0)}k</td><td><span class="badge ${emiC}">${emiL}</span></td><td>${newsB}</td><td><span class="badge ${tier[0]}">${tier.toUpperCase()}</span></td><td>${dStr}</td><td><button class="btn btn-sm btn-ghost" onclick="loadToAssess(${p.id})">Assess →</button></td></tr>`;
   }).join('');
@@ -2228,7 +2247,8 @@ function applyNewsRisk(){
   buildPortfolio();
   if(ST.assessed)runA();
   const applied=$('news-adj-applied'); if(applied){applied.style.display='block';applied.innerHTML=`<div class="abn ok"><span></span><span><strong>Applied ${Object.keys(ST.newsAdjDelta).length} news adjustments to portfolio.</strong> Re-scored. ${Object.entries(ST.newsAdjDelta).map(([k,v])=>`${k}: ${v>0?'+':''}${v}`).join(' | ')}</span></div>`;}
-  $('apply-news-btn').textContent='Applied'; $('apply-news-btn').disabled=true;
+  $('apply-news-btn').textContent='Applied';
+  const ncs=$('news-col-status');if(ncs)ncs.textContent='News-adjusted risk scores active — '+Object.keys(ST.newsAdjDelta).length+' signals applied to portfolio.'; $('apply-news-btn').disabled=true;
   setTimeout(()=>{$('apply-news-btn').textContent='Apply to Portfolio';$('apply-news-btn').disabled=false;},4000);
   toast('News adjustments applied to portfolio','ok');
 }
