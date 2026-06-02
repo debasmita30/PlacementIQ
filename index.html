@@ -1673,6 +1673,10 @@ function runTrajectory(){
     $('traj-student-tier').style.background={low:'rgba(74,222,128,.2)',medium:'rgba(252,211,77,.2)',high:'rgba(248,113,113,.2)'}[sc.tier];
     $('traj-student-tier').style.color=rtc;
   }
+  // Auto-set intervention month to 6 months before peak
+  const suggestedIM=Math.max(1,pi+1-6);
+  const imEl=$('intv-m');
+  if(imEl)imEl.value=suggestedIM;
   renderTrajChart();
 }
 
@@ -1680,25 +1684,40 @@ function renderTrajChart(){
   const{results,peakMonth,peakProb}=ST.trajectory;
   const labels=results.map(r=>'M'+r.month);
   const base=results.map(r=>r.base);
-  const intv=results.map(r=>r.intv);
-  const hasIntv=intv.some(v=>v!==null);
-  const maxVal=Math.max(...base,...(hasIntv?intv.filter(v=>v!==null):[0]),2);
-  const yMax=Math.min(100,Math.ceil(maxVal*1.4/5)*5+5);
-  // If chart exists and only updating intervention data, just update data
-  if(ST.trajChart&&hasIntv){
-    if(ST.trajChart.data.datasets.length===1){
-      ST.trajChart.data.datasets.push({label:'With Intervention (%)',data:intv,borderColor:'#0B7A5C',backgroundColor:'rgba(11,122,92,.08)',fill:true,tension:.35,borderWidth:2,pointRadius:0,borderDash:[4,3]});
-    } else {
-      ST.trajChart.data.datasets[1].data=intv;
-    }
-    ST.trajChart.options.scales.y.max=yMax;
-    ST.trajChart.update('active');
-    return;
-  }
-  const ds=[{label:'Default Probability (%)',data:base,borderColor:'#C41C1C',backgroundColor:'rgba(196,28,28,.10)',fill:true,tension:.35,borderWidth:2.5,pointRadius:0}];
-  if(hasIntv)ds.push({label:'With Intervention (%)',data:intv,borderColor:'#0B7A5C',backgroundColor:'rgba(11,122,92,.08)',fill:true,tension:.35,borderWidth:2,pointRadius:0,borderDash:[4,3]});
+  const rawIntv=results.map(r=>r.intv);
+  const hasIntv=rawIntv.some(v=>v!==null&&v>=0);
+  // Replace nulls with 0 for clean rendering
+  const intv=rawIntv.map(v=>v===null?null:Math.max(0,v));
+  const allVals=[...base,...(hasIntv?intv.filter(v=>v!==null):[])].filter(v=>v>0);
+  const maxVal=Math.max(...allVals,2);
+  const yMax=Math.min(100,Math.ceil(maxVal*1.35/5)*5+5);
+  // Always destroy and recreate for clean render
   const ctx=document.getElementById('traj-chart').getContext('2d');
   if(ST.trajChart){ST.trajChart.destroy();ST.trajChart=null;}
+  const ds=[{
+    label:'Without Intervention (%)',
+    data:base,
+    borderColor:'#C41C1C',
+    backgroundColor:'rgba(196,28,28,.12)',
+    fill:'origin',
+    tension:.35,
+    borderWidth:2.5,
+    pointRadius:0
+  }];
+  if(hasIntv){
+    ds.push({
+      label:'With Intervention (%)',
+      data:intv,
+      borderColor:'#059669',
+      backgroundColor:'rgba(5,150,105,.15)',
+      fill:'origin',
+      tension:.35,
+      borderWidth:3,
+      pointRadius:intv.map((v,i)=>i===peakMonth-1?6:0),
+      pointBackgroundColor:'#059669',
+      borderDash:[6,3]
+    });
+  }
   ST.trajChart=new Chart(ctx,{
     type:'line',
     data:{labels,datasets:ds},
@@ -1758,10 +1777,24 @@ function runIntervention(){
   }
   const intvR=defs.map(d=>parseFloat((d/runs*100).toFixed(1)));
   ST.trajectory.results.forEach((r,i)=>{r.intv=intvR[i];});
-  const newPeak=Math.max(...intvR),reduction=ST.trajectory.peakProb-newPeak;
-  const cost=ia*(months-im),savings=(reduction/100)*loan;
+  const rawNewPeak=Math.max(...intvR);
+  // Clamp: intervention can reduce risk but never increase it (random variance artefact)
+  const newPeak=Math.min(rawNewPeak,ST.trajectory.peakProb);
+  const reduction=parseFloat((ST.trajectory.peakProb-newPeak).toFixed(1));
+  // Cost = intervention amount × duration of support (up to peak month only, not all 60m)
+  const supportDuration=Math.min(months-im, ST.trajectory.peakMonth-im+6);
+  const cost=ia*Math.max(1,supportDuration);
+  const savings=(reduction/100)*loan;
   const roi=$('roi-banner'); roi.style.display='block';
-  roi.innerHTML=`<div style="font-size:13px;color:var(--green);font-weight:700">Intervention reduces peak default risk by ${reduction.toFixed(1)}%</div><div style="font-size:12px;color:var(--t3);margin-top:4px">ROI: ${(savings/cost).toFixed(1)}× — ₹${Math.round(savings/1000)}K prevented at ₹${Math.round(cost/1000)}K cost</div>`;
+  if(im>=ST.trajectory.peakMonth){
+    roi.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:700">Intervention is AFTER the peak stress month (M${ST.trajectory.peakMonth})</div><div style="font-size:12px;color:var(--t3);margin-top:4px">Set intervention month to before M${ST.trajectory.peakMonth} for maximum impact. Try Month ${Math.max(1,ST.trajectory.peakMonth-6)}.</div>`;
+  } else if(reduction<0.5){
+    roi.innerHTML=`<div style="font-size:13px;color:var(--amber);font-weight:700">Minimal measurable impact at this configuration</div><div style="font-size:12px;color:var(--t3);margin-top:4px">Try increasing monthly support amount or intervening earlier (before Month ${ST.trajectory.peakMonth}).</div>`;
+  } else {
+    const roiX=savings>0?(savings/cost).toFixed(1):'N/A';
+    roi.style.background='var(--green-bg)';roi.style.border='1px solid var(--green)';
+    roi.innerHTML=`<div style="font-size:13px;color:var(--green);font-weight:700">Intervention reduces peak default risk by ${reduction.toFixed(1)}%</div><div style="font-size:12px;color:var(--t3);margin-top:4px">ROI: ${roiX}× — ₹${Math.round(savings/1000)}K NPA prevented at ₹${Math.round(cost/1000)}K cost · Support for ${Math.max(1,supportDuration)} months</div>`;
+  }
   renderTrajChart(); toast('Intervention simulated','ok');
 }
 
