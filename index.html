@@ -966,8 +966,39 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
 
 <!-- ══════════════════ TAB: TRAJECTORY ══════════════════ -->
 <div class="panel" id="panel-trajectory">
+  <!-- Student context banner for trajectory -->
+  <div id="traj-student-banner" style="display:none;background:var(--navy);color:#fff;border-radius:12px;padding:12px 18px;margin-bottom:16px;display:none;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Simulating Student</div>
+        <div style="font-family:var(--hd);font-size:15px;font-weight:700" id="traj-student-name">—</div>
+      </div>
+      <div style="width:1px;height:30px;background:rgba(255,255,255,.15)"></div>
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Program</div>
+        <div style="font-size:12.5px;color:rgba(255,255,255,.8)" id="traj-student-prog">—</div>
+      </div>
+      <div style="width:1px;height:30px;background:rgba(255,255,255,.15)"></div>
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Risk Score</div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:700" id="traj-student-score">—</div>
+      </div>
+      <div style="width:1px;height:30px;background:rgba(255,255,255,.15)"></div>
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">6m Placement</div>
+        <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:#4ADE80" id="traj-student-p6">—</div>
+      </div>
+      <div style="width:1px;height:30px;background:rgba(255,255,255,.15)"></div>
+      <div>
+        <div style="font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">EMI Starts</div>
+        <div style="font-family:var(--mono);font-size:14px;color:rgba(255,255,255,.7)">Month 30</div>
+      </div>
+    </div>
+    <div id="traj-student-tier" style="padding:4px 14px;border-radius:6px;font-size:11px;font-weight:700;font-family:var(--mono)"></div>
+  </div>
+
   <div class="traj-header">
-    <div><div class="sec-t">Trajectory Engine — Monte Carlo Simulation</div><div class="sec-s">10,000 simulation paths × 36 months. Models employment timing, FX shocks, visa outcomes, income variance.</div></div>
+    <div><div class="sec-t">Trajectory Engine — Monte Carlo Simulation</div><div class="sec-s">5,000 simulation paths × 60 months. Models moratorium period, employment timing, FX shocks, visa outcomes, income variance.</div></div>
     <div class="bp-card" id="bp-card">
       <div class="bp-month" id="bp-month">—</div>
       <div class="bp-label">Peak Stress Month</div>
@@ -996,8 +1027,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;heigh
   </div>
 
   <div id="traj-ph" class="ph-state" style="margin-top:20px">
-    <div class="ph-icon"></div>
-    <div class="ph-txt">Run an assessment on the Assess tab to generate trajectory simulation</div>
+    <div class="ph-icon" style="font-size:28px;opacity:.3">~</div>
+    <div class="ph-txt">Go to the <strong>Assess tab</strong>, fill in student details and click <strong>Run Assessment</strong><br>The trajectory simulation will auto-generate here from your assessment data</div>
+    <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="document.querySelector('[data-tab=assess]').click()">Go to Assess</button>
   </div>
 </div>
 
@@ -1556,48 +1588,64 @@ function runTrajectory(){
   const emi=calcEMI(loan,s.rate||11.5,(s.tenure||7)*12);
   const fxRate=ST.fx[CM[s.country]?.cur||'USD']||84;
   const expSalMonthly=sc.expSal*fxRate/12;
-  const ep=Math.max(0.20,sc.p6/100);
 
-  // MORATORIUM MODEL: EMI does not start for study_period + moratorium_months
-  // Study period: 1yr course=12m, 2yr course=18-24m (most PG is 1-2yr)
-  // RBI moratorium: course + 12 months
-  // We model: EMI only starts from month (study_period + moratorium)
-  // Typical: 12m study + 12m moratorium = month 24 EMI start
-  const studyMonths=18; // 1.5yr average PG course
-  const moratoriumMonths=12; // RBI mandated
-  const emiStartMonth=studyMonths+moratoriumMonths; // month 30
+  // BINARY EMPLOYMENT MODEL:
+  // ep = placement probability at 6 months = chance student is employed by EMI start
+  // Each simulation run decides independently: will this student be employed?
+  const ep6=sc.p6/100;  // prob employed within 6m of graduation
+  const ep12=sc.p12/100; // prob employed within 12m
 
-  // Job search starts AFTER graduation (after studyMonths)
-  // e.g. UK typically finds job in 4-5 months after graduation
-  const jobSearchBase={US:4,UK:4,CA:5,AU:5,DE:6,NL:5,SG:4}[s.country]||5;
-  const visaRisk={UK:0.04,US:0.16,CA:0.10,AU:0.07,DE:0.09,NL:0.08,SG:0.05}[s.country]||0.08;
+  // RBI MORATORIUM: EMI starts at Month 30 (18m study + 12m moratorium)
+  const studyMonths=18;
+  const moratoriumMonths=12;
+  const emiStartMonth=studyMonths+moratoriumMonths; // Month 30
 
-  // Co-borrower income: use a realistic figure (not loan-based)
-  // Typical Indian family co-borrower: ₹40,000-80,000/month
-  // We scale by loan size as a proxy for family income
-  const coIncome=Math.min(65000,Math.max(35000,s.loan*1200)); // realistic ₹35K-65K/month
+  // Country-specific job search base (months after graduation to find job)
+  const jobSearchBase={US:5,UK:4,CA:5.5,AU:5,DE:6,NL:5,SG:4}[s.country]||5;
+  const visaRiskFactor={UK:0.04,US:0.20,CA:0.12,AU:0.08,DE:0.10,NL:0.09,SG:0.05}[s.country]||0.10;
+
+  // Co-borrower income: realistic Indian family range ₹35K-65K/month
+  const coIncome=Math.min(65000,Math.max(35000,s.loan*1200));
 
   const defs=new Array(months).fill(0);
   for(let r=0;r<runs;r++){
-    // Job found X months AFTER graduation (after studyMonths)
-    const jSearchDelay=Math.max(1,Math.round(jobSearchBase+(Math.random()+Math.random()-1)*3));
-    const visaFailed=Math.random()<visaRisk;
-    // Visa failure adds 6-18 months to job finding
-    const extraDelay=visaFailed?Math.floor(Math.random()*12+6):0;
-    const jobFoundAtMonth=studyMonths+jSearchDelay+extraDelay;
+    // STEP 1: Determine if this run represents a student who gets employed
+    // Use placement probabilities to set job timing
+    let jobFoundAtMonth;
+    const rnd=Math.random();
+    const visaFail=Math.random()<visaRiskFactor;
+    if(!visaFail){
+      if(rnd<ep6){
+        // Placed within 6 months of graduation — random between 1-6m
+        const delay=Math.max(1,Math.round(jobSearchBase*(0.4+Math.random()*0.8)));
+        jobFoundAtMonth=studyMonths+delay;
+      } else if(rnd<ep12){
+        // Placed within 7-12 months
+        const delay=Math.round(6+Math.random()*6);
+        jobFoundAtMonth=studyMonths+delay;
+      } else {
+        // Not placed within 12m — extended job search 13-30m after graduation
+        const delay=Math.round(13+Math.random()*18);
+        jobFoundAtMonth=studyMonths+delay;
+      }
+    } else {
+      // Visa failure: job delayed by additional 8-20 months
+      const baseDelay=Math.max(1,Math.round(jobSearchBase*(0.6+Math.random())));
+      const visaDelay=Math.floor(Math.random()*12+8);
+      jobFoundAtMonth=studyMonths+baseDelay+visaDelay;
+    }
 
     let def=false,misses=0;
     for(let m=0;m<months;m++){
       if(def){for(let mm=m;mm<months;mm++)defs[mm]++;break;}
-      // Before EMI start month: no payment required, no default possible
-      if(m<emiStartMonth){continue;}
+      if(m<emiStartMonth)continue; // moratorium — no EMI due
       const employed=m>=jobFoundAtMonth;
       const fxShock=1+(Math.random()*2-1)*0.09;
-      const salVar=0.80+Math.random()*0.45;
-      // Income: if employed use salary, else co-borrower income
-      const income=employed?(expSalMonthly*salVar*ep/fxShock):(coIncome*(0.85+Math.random()*0.3));
+      const salVar=0.85+Math.random()*0.35;
+      // BINARY income: full salary if employed, co-borrower income if not
+      const income=employed?(expSalMonthly*salVar/fxShock):(coIncome*(0.85+Math.random()*0.25));
       const ratio=emi/Math.max(income,1);
-      if(ratio>0.45)misses++;
+      if(ratio>0.48)misses++;
       else if(misses>0)misses=Math.max(0,misses-1);
       if(misses>=3)def=true;
     }
@@ -1612,6 +1660,19 @@ function runTrajectory(){
   V('ti-peak',peakProb.toFixed(1)+'%');
   V('ti-safe',(100-peakProb).toFixed(1)+'%');
   V('ti-month','Month '+(pi+1));
+  const banner=$('traj-student-banner');
+  if(banner&&ST.assessed){
+    banner.style.display='flex';
+    V('traj-student-name',s.name||'Student');
+    V('traj-student-prog',(s.prog||FM[s.field]?.n||s.field)+' · '+(CM[s.country]?.name||s.country));
+    const rtc={low:'#4ADE80',medium:'#FCD34D',high:'#F87171'}[sc.tier]||'#fff';
+    $('traj-student-score').textContent=sc.rs+'/100';
+    $('traj-student-score').style.color=rtc;
+    V('traj-student-p6',sc.p6+'%');
+    $('traj-student-tier').textContent=sc.tier.toUpperCase()+' RISK';
+    $('traj-student-tier').style.background={low:'rgba(74,222,128,.2)',medium:'rgba(252,211,77,.2)',high:'rgba(248,113,113,.2)'}[sc.tier];
+    $('traj-student-tier').style.color=rtc;
+  }
   renderTrajChart();
 }
 
@@ -1662,30 +1723,35 @@ function runIntervention(){
   const s=ST.student,im=parseInt($('intv-m').value)||10,ia=parseInt($('intv-a').value)||2000;
   const loan=s.loan*1e5,sc=ST.scores,runs=3000,months=60;
   const emi=calcEMI(loan,s.rate||11.5,(s.tenure||7)*12);
-  const ep=Math.max(0.20,sc.p6/100);
+  const ep6i=sc.p6/100,ep12i=sc.p12/100;
   const expM=sc.expSal*(ST.fx[CM[s.country]?.cur||'USD']||84)/12;
   const studyMonths=18,moratoriumMonths=12,emiStartMonth=studyMonths+moratoriumMonths;
-  const jobSearchBase={US:4,UK:4,CA:5,AU:5,DE:6,NL:5,SG:4}[s.country]||5;
-  const visaRisk={UK:0.04,US:0.16,CA:0.10,AU:0.07,DE:0.09,NL:0.08,SG:0.05}[s.country]||0.08;
+  const jobSearchBase={US:5,UK:4,CA:5.5,AU:5,DE:6,NL:5,SG:4}[s.country]||5;
+  const visaRiskFactor={UK:0.04,US:0.20,CA:0.12,AU:0.08,DE:0.10,NL:0.09,SG:0.05}[s.country]||0.10;
   const coIncome=Math.min(65000,Math.max(35000,s.loan*1200));
   const defs=new Array(months).fill(0);
   for(let r=0;r<runs;r++){
-    const jd=Math.max(1,Math.round(jobSearchBase+(Math.random()+Math.random()-1)*3));
-    const vf=Math.random()<visaRisk;
-    const jobFoundAt=studyMonths+jd+(vf?Math.floor(Math.random()*12+6):0);
+    const rnd=Math.random(),vf=Math.random()<visaRiskFactor;
+    let jobFoundAt;
+    if(!vf){
+      if(rnd<ep6i){jobFoundAt=studyMonths+Math.max(1,Math.round(jobSearchBase*(0.4+Math.random()*0.8)));}
+      else if(rnd<ep12i){jobFoundAt=studyMonths+Math.round(6+Math.random()*6);}
+      else{jobFoundAt=studyMonths+Math.round(13+Math.random()*18);}
+    } else {
+      jobFoundAt=studyMonths+Math.max(1,Math.round(jobSearchBase*(0.6+Math.random())))+Math.floor(Math.random()*12+8);
+    }
     let def=false,misses=0;
     for(let m=0;m<months;m++){
       if(def){for(let mm=m;mm<months;mm++)defs[mm]++;break;}
       if(m<emiStartMonth)continue;
       const employed=m>=jobFoundAt;
-      const fxShock=1+(Math.random()*2-1)*0.09;
-      const salVar=0.80+Math.random()*0.45;
-      const baseIncome=employed?(expM*salVar*ep/fxShock):(coIncome*(0.85+Math.random()*0.3));
+      const fxShock=1+(Math.random()*2-1)*0.09,salVar=0.85+Math.random()*0.35;
+      const baseIncome=employed?(expM*salVar/fxShock):(coIncome*(0.85+Math.random()*0.25));
       const intvBoost=m>=im?ia:0;
       const income=baseIncome+(intvBoost/12);
       const eEmi=m>=im?emi*0.93:emi;
       const ratio=eEmi/Math.max(income,1);
-      if(ratio>0.45)misses++;
+      if(ratio>0.48)misses++;
       else if(misses>0)misses=Math.max(0,misses-1);
       if(misses>=3)def=true;
     }
